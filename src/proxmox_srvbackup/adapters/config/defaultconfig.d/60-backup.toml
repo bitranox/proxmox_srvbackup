@@ -1,0 +1,99 @@
+# Backup configuration for proxmox_srvbackup
+#
+# Pull-based backup: proxmox-pbs connects to each server via SSH and pulls
+# configuration archives and ZFS rpool snapshots.
+#
+# Override via:
+#   .env:  BACKUP__MAX_PARALLEL=8
+#   env:   PROXMOX_SRVBACKUP___BACKUP__MAX_PARALLEL=8
+#   CLI:   --set backup.max_parallel=8
+
+[backup]
+backup_base_dir = "/mnt/zpool-ssd/px-node-backups"
+max_parallel = 4
+retention_count = 3
+ssh_user = "root"
+ssh_connect_timeout = 15
+ssh_key_dir = "/root/.ssh"
+ssh_key_prefix = "backup_pull"
+bootstrap_key = "/rotek/scripts/credentials/root@anyhost_nopass.key"
+
+[backup.config_paths]
+paths = [
+    "/etc/pve",
+    "/etc/network",
+    "/etc/pve/firewall",
+    "/etc/cron.d",
+    "/etc/cron.daily",
+    "/etc/cron.hourly",
+    "/etc/pve/storage.cfg",
+    "/etc/pve/user.cfg",
+    "/etc/pve/acl.cfg",
+    "/etc/pve/local/pve-ssl.*",
+    "/var/lib/vz/template/iso",
+    "/var/lib/vz/template/cache",
+    "/var/lib/corosync",
+    "/var/lib/pve-cluster",
+    "/rotek",
+]
+exclude_patterns = [
+    "/rotek/scripts/credentials",
+]
+
+# Server definitions
+# Each server needs: hostname (FQDN), zfs_pool (default: rpool)
+# Set is_local = true for the backup server itself (proxmox-pbs)
+#
+# Per-server backup type control:
+#   backup_configfiles = true   (default) back up configuration files
+#   backup_snapshot    = true   (default) back up ZFS rpool snapshot
+# Set backup_snapshot = false for servers without a ZFS rpool.
+
+[backup.servers.proxmox01]
+hostname = "proxmox01.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true    # back up configuration files (/etc/pve, etc.)
+backup_snapshot = true       # back up ZFS rpool snapshot
+
+[backup.servers.proxmox02]
+hostname = "proxmox02.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox03]
+hostname = "proxmox03.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox04]
+hostname = "proxmox04.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox05]
+hostname = "proxmox05.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox06]
+hostname = "proxmox06.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox-fw]
+hostname = "proxmox-fw.local.rotek.at"
+zfs_pool = "rpool"
+backup_configfiles = true
+backup_snapshot = true
+
+[backup.servers.proxmox-pbs]
+hostname = "proxmox-pbs.local.rotek.at"
+zfs_pool = "rpool"
+is_local = true
+backup_configfiles = true
+backup_snapshot = true
