@@ -141,7 +141,7 @@ class TestResolveSshKey:
     def test_builds_key_path(self) -> None:
         server = ServerConfig(name="px01", hostname="px01.example.com", zfs_pool="rpool")
         result = _resolve_ssh_key(server, "/root/.ssh", "backup_pull")
-        assert result == "/root/.ssh/backup_pull_px01"
+        assert result == str(Path("/root/.ssh") / "backup_pull_px01")
 
 
 # ---------------------------------------------------------------------------
