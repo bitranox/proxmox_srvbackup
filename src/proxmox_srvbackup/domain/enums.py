@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum, StrEnum
+from enum import Enum
 
 
 class OutputFormat(str, Enum):
@@ -49,7 +49,7 @@ class DeployTarget(str, Enum):
     USER = "user"
 
 
-class BackupType(StrEnum):
+class BackupType(str, Enum):
     """Backup operation scope.
 
     Attributes:
