@@ -3,6 +3,11 @@
 Generates per-server ed25519 keypairs on proxmox-pbs and deploys the public
 keys to each remote server using the existing shared bootstrap key for
 initial access.
+
+Deploys keys directly via ``cat >>`` instead of ``ssh-copy-id`` because
+Proxmox VE symlinks ``~/.ssh/authorized_keys`` to
+``/etc/pve/priv/authorized_keys`` on a FUSE filesystem (pmxcfs) where
+``ssh-copy-id`` silently fails.
 """
 
 from __future__ import annotations
@@ -54,26 +59,63 @@ def _deploy_public_key(
     key_file: Path,
     hostname: str,
     bootstrap_key: str,
+    authorized_keys_path: str,
     user: str = "root",
 ) -> bool:
-    """Deploy the public key to a remote server using ssh-copy-id."""
+    """Deploy the public key to a remote server via SSH cat.
+
+    Reads the local public key and appends it to the remote
+    ``authorized_keys_path`` if not already present. Uses the bootstrap
+    key for authentication.
+
+    This avoids ``ssh-copy-id`` which silently fails on Proxmox VE
+    where ``~/.ssh/authorized_keys`` is a symlink to the pmxcfs FUSE
+    filesystem at ``/etc/pve/priv/authorized_keys``.
+    """
     pub_key_file = key_file.with_suffix(".pub")
     if not pub_key_file.exists():
         logger.error("Public key not found: %s", pub_key_file)
         return False
 
-    cmd = [
-        "ssh-copy-id",
+    pub_key_content = pub_key_file.read_text().strip()
+
+    # Check if key is already deployed (idempotent)
+    check_cmd = [
+        "ssh",
         "-i",
-        str(pub_key_file),
-        "-o",
-        f"IdentityFile={bootstrap_key}",
+        bootstrap_key,
         "-o",
         "StrictHostKeyChecking=accept-new",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
         f"{user}@{hostname}",
+        f"grep -qF '{pub_key_content}' {authorized_keys_path} 2>/dev/null && echo FOUND || echo MISSING",
     ]
-    logger.info("Deploying public key to %s@%s", user, hostname)
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
+    logger.info("Checking if key already deployed on %s@%s", user, hostname)
+    check_result = subprocess.run(check_cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
+
+    if check_result.returncode == 0 and "FOUND" in check_result.stdout:
+        logger.info("Key already present on %s — skipping deployment", hostname)
+        return True
+
+    # Append the key
+    deploy_cmd = [
+        "ssh",
+        "-i",
+        bootstrap_key,
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        f"{user}@{hostname}",
+        f"echo '{pub_key_content}' >> {authorized_keys_path}",
+    ]
+    logger.info("Deploying public key to %s@%s:%s", user, hostname, authorized_keys_path)
+    result = subprocess.run(deploy_cmd, capture_output=True, text=True, check=False)  # noqa: S603  # nosec B603
 
     if result.returncode != 0:
         logger.error("Key deployment failed for %s: %s", hostname, result.stderr.strip())
@@ -114,13 +156,14 @@ def setup_keys(
     key_dir: Path,
     key_prefix: str,
     bootstrap_key: str,
+    authorized_keys_path: str = "/etc/pve/priv/authorized_keys",
 ) -> dict[str, bool]:
     """Generate per-server SSH keypairs and deploy public keys.
 
     For each non-local server:
         1. Generate an ed25519 keypair (skip if already exists).
-        2. Deploy the public key to the remote server using ssh-copy-id
-           with the existing bootstrap key for authentication.
+        2. Deploy the public key to the remote server's
+           ``authorized_keys_path`` via SSH (skip if already present).
         3. Test connectivity using the new key.
 
     Args:
@@ -128,6 +171,8 @@ def setup_keys(
         key_dir: Directory to store keypairs (e.g., /root/.ssh).
         key_prefix: Filename prefix for keys (e.g., "backup_pull").
         bootstrap_key: Path to existing shared SSH key for initial deployment.
+        authorized_keys_path: Remote path to authorized_keys file.
+            Defaults to ``/etc/pve/priv/authorized_keys`` for Proxmox VE.
 
     Returns:
         Dictionary mapping server names to success status.
@@ -148,7 +193,7 @@ def setup_keys(
             results[server.name] = False
             continue
 
-        if not _deploy_public_key(key_file, server.hostname, bootstrap_key):
+        if not _deploy_public_key(key_file, server.hostname, bootstrap_key, authorized_keys_path):
             results[server.name] = False
             continue
 

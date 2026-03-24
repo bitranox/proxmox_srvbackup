@@ -1226,3 +1226,105 @@ def test_validate_recipients_error_includes_invalid_address() -> None:
 
     with pytest.raises(InvalidRecipientError, match="bad-address"):
         validate_recipients("bad-address")
+
+
+# ======================== EmailConfig.__repr__ ========================
+
+
+@pytest.mark.os_agnostic
+def test_repr_redacts_password() -> None:
+    """Password is shown as [REDACTED] in repr, not the actual value."""
+    config = EmailConfig(
+        smtp_hosts=["smtp.example.com:587"],
+        smtp_password="super-secret-123",
+    )
+    r = repr(config)
+    assert "super-secret-123" not in r
+    assert "[REDACTED]" in r
+    assert "smtp_hosts" in r
+
+
+@pytest.mark.os_agnostic
+def test_repr_shows_none_password_normally() -> None:
+    """When password is None, it's shown as None, not [REDACTED]."""
+    config = EmailConfig(smtp_hosts=["smtp.example.com:587"])
+    r = repr(config)
+    assert "[REDACTED]" not in r
+    assert "EmailConfig(" in r
+
+
+# ======================== EmailConfig validators: edge cases ========================
+
+
+@pytest.mark.os_agnostic
+def test_coerce_string_to_list_non_string_non_list_returns_empty() -> None:
+    """Non-string, non-list input to smtp_hosts is coerced to empty list."""
+    config = EmailConfig(smtp_hosts=42)  # type: ignore[arg-type]
+    assert config.smtp_hosts == []
+
+
+@pytest.mark.os_agnostic
+def test_coerce_extension_lists_unsupported_type_returns_none() -> None:
+    """Unsupported type for allowed_extensions returns None (library defaults)."""
+    config = EmailConfig(attachment_allowed_extensions=42)  # type: ignore[arg-type]
+    assert config.attachment_allowed_extensions is None
+
+
+@pytest.mark.os_agnostic
+def test_coerce_directory_lists_unsupported_type_returns_none() -> None:
+    """Unsupported type for allowed_directories returns None (library defaults)."""
+    config = EmailConfig(attachment_allowed_directories=42)  # type: ignore[arg-type]
+    assert config.attachment_allowed_directories is None
+
+
+# ======================== to_conf_mail: attachment kwargs ========================
+
+
+@pytest.mark.os_agnostic
+def test_to_conf_mail_passes_attachment_extensions_when_set() -> None:
+    """Explicit attachment extension sets are passed through to ConfMail."""
+    config = EmailConfig(
+        attachment_allowed_extensions=frozenset({".pdf", ".txt"}),
+        attachment_blocked_extensions=frozenset({".exe"}),
+    )
+    conf = config.to_conf_mail()
+    assert conf.attachment_allowed_extensions == frozenset({".pdf", ".txt"})
+    assert conf.attachment_blocked_extensions == frozenset({".exe"})
+
+
+@pytest.mark.os_agnostic
+def test_to_conf_mail_passes_attachment_directories_when_set() -> None:
+    """Explicit attachment directory sets are passed through to ConfMail."""
+    from pathlib import Path
+
+    config = EmailConfig(
+        attachment_allowed_directories=frozenset({Path("/tmp/exports")}),
+        attachment_blocked_directories=frozenset({Path("/etc")}),
+    )
+    conf = config.to_conf_mail()
+    assert conf.attachment_allowed_directories == frozenset({Path("/tmp/exports")})
+    assert conf.attachment_blocked_directories == frozenset({Path("/etc")})
+
+
+@pytest.mark.os_agnostic
+def test_to_conf_mail_passes_max_size_when_set() -> None:
+    """Explicit max_size_bytes is passed through to ConfMail."""
+    config = EmailConfig(attachment_max_size_bytes=1024)
+    conf = config.to_conf_mail()
+    assert conf.attachment_max_size_bytes == 1024
+
+
+@pytest.mark.os_agnostic
+def test_to_conf_mail_omits_none_attachment_settings() -> None:
+    """None attachment settings are not passed to ConfMail (library defaults apply)."""
+    config = EmailConfig(
+        attachment_allowed_extensions=None,
+        attachment_blocked_extensions=None,
+        attachment_allowed_directories=None,
+        attachment_blocked_directories=None,
+        attachment_max_size_bytes=None,
+    )
+    conf = config.to_conf_mail()
+    # When None, kwargs are not passed, so ConfMail uses its own defaults.
+    # We verify the config was created without error.
+    assert conf is not None

@@ -5,7 +5,7 @@
 [![CodeQL](https://github.com/bitranox/proxmox_srvbackup/actions/workflows/codeql.yml/badge.svg)](https://github.com/bitranox/proxmox_srvbackup/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Open in Codespaces](https://img.shields.io/badge/Codespaces-Open-blue?logo=github&logoColor=white&style=flat-square)](https://codespaces.new/bitranox/proxmox_srvbackup?quickstart=1)
-[![PyPI](https://img.shields.io/pypi/v/proxmox_srvbackup.svg)](https://pypi.org/project/proxmox_srvbackup/)
+[![PyPI](https://img.shields.io/pypi/v/proxmox-srvbackup.svg)](https://pypi.org/project/proxmox_srvbackup/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/proxmox_srvbackup.svg)](https://pypi.org/project/proxmox_srvbackup/)
 [![Code Style: Ruff](https://img.shields.io/badge/Code%20Style-Ruff-46A3FF?logo=ruff&labelColor=000)](https://docs.astral.sh/ruff/)
 [![codecov](https://codecov.io/gh/bitranox/proxmox_srvbackup/graph/badge.svg?token=UFBaUDIgRk)](https://codecov.io/gh/bitranox/proxmox_srvbackup)
@@ -149,22 +149,22 @@ For alternative install paths (pip, pipx, source builds, etc.), see
 ## Quick Start
 
 ```bash
-# 2. Verify
+# 1. Verify
 proxmox-srvbackup --version
 
-# 3. Deploy default configuration
-proxmox-srvbackup config-deploy --target user
+# 2. Deploy default configuration
+proxmox-srvbackup config-deploy --target app
 
-# 4. Edit the configuration to add your servers, either via config or .env file
+# 3. Edit the configuration to add your servers, either via config or .env file
 #    (see Configuration section below)
 
-# 5. Generate and deploy SSH keys to all servers
+# 4. Generate and deploy SSH keys to all servers
 proxmox-srvbackup setup-keys
 
-# 6. Run a dry-run backup to verify connectivity
+# 5. Run a dry-run backup to verify connectivity
 proxmox-srvbackup backup --dry-run
 
-# 7. Run the actual backup
+# 6. Run the actual backup
 proxmox-srvbackup backup
 ```
 
@@ -188,6 +188,7 @@ ssh_connect_timeout = 15        # seconds
 ssh_key_dir = "/root/.ssh"
 ssh_key_prefix = "backup_pull"
 bootstrap_key = "/path/to/shared/bootstrap.key"
+authorized_keys_path = "/etc/pve/priv/authorized_keys"  # Proxmox default
 
 [backup.config_paths]
 paths = [
@@ -423,14 +424,20 @@ proxmox-srvbackup setup-keys
 
 1. For each non-local server in the configuration:
    - Generates an ed25519 keypair at `{ssh_key_dir}/{ssh_key_prefix}_{server_name}` (skips if it already exists)
-   - Deploys the public key to the remote server via `ssh-copy-id` using the bootstrap key
+   - Deploys the public key directly to the remote `authorized_keys_path`
+     via SSH (defaults to `/etc/pve/priv/authorized_keys` for Proxmox VE)
    - Tests connectivity using the newly deployed key
+
+**Why not `ssh-copy-id`?** Proxmox VE symlinks `~/.ssh/authorized_keys` to
+`/etc/pve/priv/authorized_keys` on a FUSE filesystem (pmxcfs). `ssh-copy-id`
+follows the symlink but the write silently fails. This tool deploys keys
+directly to the actual file path.
 
 **Idempotent -- safe to re-run:**
 
 Running `setup-keys` again is harmless. Existing keypairs are skipped
-(not overwritten), and `ssh-copy-id` only adds the public key if it is not
-already in `authorized_keys`. When you add a new server to the configuration,
+(not overwritten), and the deployment checks whether the key is already
+present before appending. When you add a new server to the configuration,
 just run `setup-keys` again -- it will generate and deploy the key for the
 new server while leaving all existing keys untouched:
 
@@ -442,7 +449,7 @@ proxmox-srvbackup setup-keys
 **Prerequisites:**
 
 - The `bootstrap_key` must be configured and provide SSH access to all servers
-- The backup server must have `ssh-keygen` and `ssh-copy-id` available
+- The backup server must have `ssh-keygen` available
 
 ### Configuration Commands
 

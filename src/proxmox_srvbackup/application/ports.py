@@ -183,6 +183,7 @@ class SetupKeys(Protocol):
         key_dir: Path,
         key_prefix: str,
         bootstrap_key: str,
+        authorized_keys_path: str = ...,
     ) -> dict[str, bool]: ...
 
 

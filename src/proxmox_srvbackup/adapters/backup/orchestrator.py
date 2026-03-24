@@ -42,6 +42,7 @@ class BackupSettings:
     ssh_key_dir: str
     ssh_key_prefix: str
     bootstrap_key: str = ""
+    authorized_keys_path: str = "/etc/pve/priv/authorized_keys"
     config_paths: list[str] = field(default_factory=list[str])
     exclude_patterns: list[str] = field(default_factory=list[str])
 
@@ -64,6 +65,7 @@ def extract_backup_settings(config: Config) -> BackupSettings:
         ssh_key_dir=str(backup_cfg.get("ssh_key_dir", "/root/.ssh")),
         ssh_key_prefix=str(backup_cfg.get("ssh_key_prefix", "backup_pull")),
         bootstrap_key=str(backup_cfg.get("bootstrap_key", "")),
+        authorized_keys_path=str(backup_cfg.get("authorized_keys_path", "/etc/pve/priv/authorized_keys")),
         config_paths=list[str](config_paths_section.get("paths", [])),
         exclude_patterns=list[str](config_paths_section.get("exclude_patterns", [])),
     )

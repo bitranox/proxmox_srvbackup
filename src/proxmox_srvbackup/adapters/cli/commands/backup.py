@@ -202,6 +202,7 @@ def cli_setup_keys(ctx: click.Context) -> None:
         click.echo(f"  Key directory: {settings.ssh_key_dir}")
         click.echo(f"  Key prefix: {settings.ssh_key_prefix}")
         click.echo(f"  Bootstrap key: {settings.bootstrap_key}")
+        click.echo(f"  Remote authorized_keys: {settings.authorized_keys_path}")
         click.echo()
 
         results = cli_ctx.services.setup_keys(
@@ -209,6 +210,7 @@ def cli_setup_keys(ctx: click.Context) -> None:
             key_dir=Path(settings.ssh_key_dir),
             key_prefix=settings.ssh_key_prefix,
             bootstrap_key=settings.bootstrap_key,
+            authorized_keys_path=settings.authorized_keys_path,
         )
 
         all_ok = True

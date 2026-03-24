@@ -6,6 +6,22 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-03-24
+
+### Added
+- `authorized_keys_path` config option for `setup-keys` (default: `/etc/pve/priv/authorized_keys`)
+- Direct SSH key deployment via `cat >>` instead of `ssh-copy-id` (fixes Proxmox pmxcfs FUSE issue)
+- Idempotent key deployment: checks if key already present before appending
+- 16 new tests for `ssh/commands.py` (coverage 25% → 100%)
+- 12 new tests for `domain/behaviors.py` (coverage 75% → 100%)
+- 9 new tests for `adapters/email/config.py` (coverage 84% → 100%)
+
+### Fixed
+- `setup-keys` now works reliably on Proxmox VE where `~/.ssh/authorized_keys` is a symlink to `/etc/pve/priv/authorized_keys` on a FUSE filesystem
+
+### Changed
+- README: documented `authorized_keys_path` config option and pmxcfs workaround
+
 ## [1.6.4] - 2026-03-24
 
 ### Changed

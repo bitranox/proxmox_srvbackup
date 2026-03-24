@@ -17,6 +17,7 @@ ssh_connect_timeout = 15
 ssh_key_dir = "/root/.ssh"
 ssh_key_prefix = "backup_pull"
 bootstrap_key = "/etc/credentials/root@anyhost_nopass.key"
+authorized_keys_path = "/etc/pve/priv/authorized_keys"
 
 [backup.config_paths]
 paths = [

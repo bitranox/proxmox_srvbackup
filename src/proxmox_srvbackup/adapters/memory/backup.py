@@ -56,6 +56,7 @@ def setup_keys_in_memory(
     key_dir: Path,
     key_prefix: str,
     bootstrap_key: str,
+    authorized_keys_path: str = "/etc/pve/priv/authorized_keys",
 ) -> dict[str, bool]:
     """No-op key setup for testing — reports all servers as successful."""
     return {s.name: True for s in servers}
