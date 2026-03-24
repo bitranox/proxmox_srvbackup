@@ -305,6 +305,42 @@ tar -tvf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz
 maps all files to your user, losing the original uid/gid. The `-p` flag
 preserves file permissions exactly as stored in the archive.
 
+### Restoring ZFS Snapshots
+
+ZFS snapshot backups are gzip-compressed `zfs send -R` streams. Restore them
+with `zfs receive` on the target server.
+
+```bash
+# List the contents of a snapshot stream (dry-run, no changes)
+gunzip -c rpool_snapshot_proxmox01_2026-03-23_04-30-00.zfs.gz | zfs recv -n rpool
+
+# Restore rpool from the backup (overwrites existing rpool datasets!)
+gunzip -c rpool_snapshot_proxmox01_2026-03-23_04-30-00.zfs.gz | zfs recv -F rpool
+
+# Restore to a different pool or dataset for inspection
+gunzip -c rpool_snapshot_proxmox01_2026-03-23_04-30-00.zfs.gz | zfs recv -F tank/restore-staging
+```
+
+**Flags explained:**
+
+| Flag | Description |
+|------|-------------|
+| `-n` | Dry-run: validates the stream without writing data |
+| `-F` | Force: rolls back the target to its most recent snapshot before receiving |
+
+**Important considerations:**
+
+- `zfs recv -F rpool` **overwrites** the target pool's datasets. Make sure
+  you are restoring to the correct server and pool.
+- The `-R` flag used during backup means the stream is recursive -- all
+  child datasets (e.g. `rpool/ROOT`, `rpool/data`) are included and will
+  be restored.
+- If the target pool already has snapshots or datasets that conflict,
+  `zfs recv` will fail. Use `-F` to force rollback, or restore to a
+  staging dataset first.
+- Boot from a rescue system or live USB when restoring the root pool of
+  a running system.
+
 ---
 
 ## CLI Reference

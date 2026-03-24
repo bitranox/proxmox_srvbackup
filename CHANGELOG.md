@@ -6,6 +6,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-03-24
+
+### Changed
+- README: added ZFS snapshot restore instructions (`zfs recv` dry-run, force, staging)
+
 ## [1.6.2] - 2026-03-24
 
 ### Changed
