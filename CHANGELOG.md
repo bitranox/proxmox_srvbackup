@@ -6,6 +6,17 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-03-24
+
+### Changed
+- README: added config backup restore instructions (preserves uid/gid and permissions)
+- README: clarified ZFS snapshot scope (rpool only makes sense when VMs/CTs use a separate volume)
+- README: documented that email notifications are disabled by default
+- README: expanded notification description with subject tags and report content
+- README: clarified systemd units require manual installation with link to setup section
+- README: simplified install instructions to PyPI only
+- CONFIG.md: documentation improvements
+
 ## [1.6.0] - 2026-03-23
 
 ### Added

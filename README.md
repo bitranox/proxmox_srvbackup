@@ -39,16 +39,27 @@ radius if any single key is exposed.
 2. **Config backup** -- SSH to each node, `tar` the configured paths
    (`/etc/pve`, `/etc/network`, cron jobs, corosync, etc.), and pipe the
    compressed archive directly to a local file. No temp files on the remote.
-3. **ZFS snapshot** -- Create a recursive ZFS snapshot on the node, stream
-   it with `zfs send -R | gzip -1` to a local `.zfs.gz` file, then destroy
-   the remote snapshot.
-4. **Parallel execution** -- Backups run across all servers concurrently
+3. **ZFS snapshot** -- Create a recursive ZFS snapshot of the configured
+   pool (typically rpool) on the node, stream it with `zfs send -R | gzip -1`
+   to a local `.zfs.gz` file, then destroy the remote snapshot. This only
+   makes sense when VMs and containers do **not** sit on rpool but on a
+   separate storage volume -- otherwise the snapshot would include all guest
+   data and be impractically large.
+4. **Parallel execution** -- Backups can run across all servers concurrently
    (configurable thread pool, default 4 threads).
 5. **Retention** -- After each run, old backups exceeding `retention_count`
    are automatically pruned.
-6. **Notification** -- A summary email reports successes and failures.
-7. **Scheduling** -- Included systemd timer/service units run backups daily
-   at 04:30 with random jitter.
+6. **Notification** -- After each backup run, a summary email is sent
+   (if configured). The subject line indicates overall status (`[OK]`,
+   `[WARNING]`, or `[ERROR]`). The body lists every server with its
+   status, duration, and any error messages for failed config or ZFS
+   backups. Email is disabled by default -- see
+   [Email Configuration](#email-configuration).
+7. **Scheduling** -- Systemd timer/service units are shipped under
+   `src/proxmox_srvbackup/adapters/config/systemd/` and must be copied
+   manually to `/etc/systemd/system/` (see
+   [Automated Backups with systemd](#automated-backups-with-systemd)).
+   Default schedule: daily at 04:30 with random jitter.
 
 ### Features
 
@@ -104,12 +115,10 @@ uvx proxmox_srvbackup@latest --help
 install_latest_python_gcc.sh
 # Pin uv to the latest python
 uv python pin /opt/python-latest/bin/python3
-# One-time install from git
-uv tool install --python /opt/python-latest/bin/python3 --from "git+https://github.com/bitranox/proxmox_srvbackup.git" proxmox-srvbackup
-# Or install from PyPI
-uv tool install --python /opt/python-latest/bin/python3 proxmox-srvbackup
+# Install from PyPI
+uv tool install --python /opt/python-latest/bin/python3 proxmox_srvbackup
 # Update (requires network)
-uv tool upgrade proxmox-srvbackup
+uv tool upgrade proxmox_srvbackup
 # Run
 proxmox-srvbackup --help
 ```
@@ -123,16 +132,13 @@ For alternative install paths (pip, pipx, source builds, etc.), see
 ## Quick Start
 
 ```bash
-# 1. Install
-uv tool install proxmox_srvbackup
-
 # 2. Verify
 proxmox-srvbackup --version
 
 # 3. Deploy default configuration
 proxmox-srvbackup config-deploy --target user
 
-# 4. Edit the configuration to add your servers
+# 4. Edit the configuration to add your servers, either via config or .env file
 #    (see Configuration section below)
 
 # 5. Generate and deploy SSH keys to all servers
@@ -168,20 +174,48 @@ bootstrap_key = "/path/to/shared/bootstrap.key"
 
 [backup.config_paths]
 paths = [
-    "/etc/pve",
-    "/etc/network",
-    "/etc/pve/firewall",
+    # Proxmox VE cluster & node config
+    "/etc/pve",                    # cluster config, VM/CT configs, storage, users, SSL, HA, SDN
+    "/etc/network",                # interfaces, bridges, VLANs, bonds
+    "/etc/vzdump.conf",            # default backup settings
+    # System identity & DNS
+    "/etc/hostname",
+    "/etc/hosts",
+    "/etc/resolv.conf",
+    # Package repos
+    "/etc/apt/sources.list",
+    "/etc/apt/sources.list.d",
+    # Scheduled tasks
     "/etc/cron.d",
     "/etc/cron.daily",
     "/etc/cron.hourly",
-    "/etc/pve/storage.cfg",
-    "/etc/pve/user.cfg",
-    "/etc/pve/acl.cfg",
+    "/etc/cron.weekly",
+    # Service daemon settings
+    "/etc/default/pvedaemon",
+    "/etc/default/pveproxy",
+    # Kernel & boot
+    "/etc/modprobe.d",
+    "/etc/kernel/cmdline",
+    "/etc/default/grub",
+    "/etc/sysctl.d",
+    # Systemd customizations
+    "/etc/systemd/system",
+    # Time sync
+    "/etc/chrony",
+    "/etc/systemd/timesyncd.conf",
+    # Mail relay
+    "/etc/postfix",
+    "/etc/aliases",
+    # SSH
+    "/etc/ssh/sshd_config",
+    # Storage subsystems
+    "/etc/lvm",
+    # Cluster state
     "/var/lib/corosync",
     "/var/lib/pve-cluster",
 ]
 exclude_patterns = [
-    "/path/to/exclude",
+    "/etc/systemd/system/*.wants",  # symlink dirs, recreated by systemctl enable
 ]
 
 # Server definitions
@@ -228,6 +262,31 @@ Backups are organized under `backup_base_dir`:
     ├── configs/
     └── snapshots/
 ```
+
+### Restoring Config Backups
+
+Config archives are standard `tar.gz` files that preserve full POSIX metadata
+(uid, gid, permissions). To restore with correct ownership and permissions,
+extract as root with `--same-owner` (default for root) and `-p` to preserve
+permissions:
+
+```bash
+# Restore to the original paths on the target server
+sudo tar -xzpf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz -C /
+
+# Preview contents before restoring
+tar -tzf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz
+
+# Restore to a staging directory for inspection
+sudo tar -xzpf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz -C /tmp/restore-staging/
+
+# Verify preserved permissions and ownership
+tar -tvf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz
+```
+
+**Important:** Always extract as root (`sudo`). Non-root extraction silently
+maps all files to your user, losing the original uid/gid. The `-p` flag
+preserves file permissions exactly as stored in the archive.
 
 ---
 
@@ -506,7 +565,13 @@ journalctl -u proxmox-srvbackup-backup.service -f
 
 ## Email Configuration
 
-Configure email settings for backup notifications via environment variables, `.env` file, or TOML configuration:
+Email notifications are **disabled by default**. The default configuration ships
+with `smtp_hosts = []` and `from_address = ""`, so no email is sent. Backups run
+normally without email -- if email is not configured, the notification step is
+silently skipped and the backup still succeeds.
+
+To enable notifications, configure at least `smtp_hosts` and `from_address` via
+environment variables, `.env` file, or TOML configuration:
 
 **Environment Variables:**
 

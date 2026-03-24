@@ -57,12 +57,6 @@ Configuration is loaded and merged in the following order (lowest to highest pre
 - App config: `/etc/xdg/proxmox-srvbackup/config.toml`
 - Host config: `/etc/xdg/proxmox-srvbackup/hosts/myserver.toml`
 
-**macOS:**
-- User config: `~/Library/Application Support/bitranox/proxmox_srvbackup/config.toml`
-
-**Windows:**
-- User config: `%APPDATA%\bitranox\proxmox_srvbackup\config.toml`
-
 ---
 
 ## CLI Commands
@@ -514,25 +508,54 @@ The `[backup]` section controls the pull-based backup behavior.
 
 ### Config Paths
 
-The `[backup.config_paths]` section specifies which paths to include in configuration backups:
+The `[backup.config_paths]` section specifies which paths to include in configuration backups.
+The default list covers everything needed to reconstruct a Proxmox VE node:
 
 ```toml
 [backup.config_paths]
 paths = [
-    "/etc/pve",
-    "/etc/network",
-    "/etc/pve/firewall",
+    # Proxmox VE cluster & node config
+    "/etc/pve",                    # cluster config, VM/CT configs, storage, users, SSL, HA, SDN
+    "/etc/network",                # interfaces, bridges, VLANs, bonds
+    "/etc/vzdump.conf",            # default backup settings
+    # System identity & DNS
+    "/etc/hostname",
+    "/etc/hosts",
+    "/etc/resolv.conf",
+    # Package repos
+    "/etc/apt/sources.list",
+    "/etc/apt/sources.list.d",
+    # Scheduled tasks
     "/etc/cron.d",
     "/etc/cron.daily",
     "/etc/cron.hourly",
-    "/etc/pve/storage.cfg",
-    "/etc/pve/user.cfg",
-    "/etc/pve/acl.cfg",
+    "/etc/cron.weekly",
+    # Service daemon settings
+    "/etc/default/pvedaemon",      # API daemon (MAX_WORKERS)
+    "/etc/default/pveproxy",       # proxy (TLS, ALLOW_FROM, MAX_WORKERS)
+    # Kernel & boot
+    "/etc/modprobe.d",             # kernel module configs (IOMMU, ZFS tuning)
+    "/etc/kernel/cmdline",         # systemd-boot params
+    "/etc/default/grub",           # GRUB params
+    "/etc/sysctl.d",              # kernel tunables
+    # Systemd customizations
+    "/etc/systemd/system",         # custom units and drop-in overrides
+    # Time sync (critical for cluster)
+    "/etc/chrony",
+    "/etc/systemd/timesyncd.conf",
+    # Mail relay (Proxmox notifications)
+    "/etc/postfix",
+    "/etc/aliases",
+    # SSH
+    "/etc/ssh/sshd_config",
+    # Storage subsystems
+    "/etc/lvm",                    # LVM config (if using LVM/LVM-thin)
+    # Cluster state
     "/var/lib/corosync",
     "/var/lib/pve-cluster",
 ]
 exclude_patterns = [
-    "/path/to/secrets",
+    "/etc/systemd/system/*.wants",  # symlink dirs, recreated by systemctl enable
 ]
 ```
 
