@@ -161,7 +161,7 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
 def _send_summary_email(cli_ctx: CLIContext, summary: BackupSummary, report: str) -> None:
     """Send backup summary notification email."""
     try:
-        email_config = cli_ctx.services.load_email_config_from_dict(cli_ctx.config.as_dict().get("email", {}))
+        email_config = cli_ctx.services.load_email_config_from_dict(cli_ctx.config.as_dict())
         subject = build_summary_subject(summary)
         cli_ctx.services.send_notification(
             config=email_config,

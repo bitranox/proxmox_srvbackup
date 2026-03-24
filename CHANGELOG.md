@@ -6,6 +6,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-03-24
+
+### Fixed
+- Backup summary email never sent: `_send_summary_email` double-extracted the `[email]` config section, resulting in empty EmailConfig (no from_address, smtp_hosts, or recipients)
+
 ## [1.7.1] - 2026-03-24
 
 ### Removed
