@@ -40,7 +40,7 @@ name = "proxmox_srvbackup"
 #: Human-readable summary shown in CLI help output.
 title = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 #: Current release version pulled from ``pyproject.toml`` by automation.
-version = "1.6.1"
+version = "1.6.2"
 #: Repository homepage presented to users.
 homepage = "https://github.com/bitranox/proxmox_srvbackup"
 #: Author attribution surfaced in CLI output.

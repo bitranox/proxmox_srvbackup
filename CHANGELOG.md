@@ -6,6 +6,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-03-24
+
+### Changed
+- README: added "Hardening the backup server" section (SSH access restrictions for PBS)
+- README: documented `setup-keys` idempotency (safe to re-run when adding new nodes)
+- README: documented email notification content (subject tags, per-server report)
+
 ## [1.6.1] - 2026-03-24
 
 ### Changed

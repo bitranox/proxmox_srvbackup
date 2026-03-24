@@ -32,6 +32,23 @@ when, what, and how to back up, and it knows immediately when a node is
 unreachable. Per-server SSH keys with minimal privileges limit the blast
 radius if any single key is exposed.
 
+### Hardening the backup server
+
+The backup server (PBS) holds SSH keys that grant root access to every
+Proxmox node. Restrict inbound SSH access so that only trusted hosts
+(management workstations, jump hosts) can reach it:
+
+- **Proxmox firewall**: allow SSH (port 22) only from specific IPs or
+  VLANs in the datacenter/cluster firewall rules.
+- **`sshd_config`**: use `AllowUsers root@<management-ip>` or
+  `Match Address` blocks to reject connections from untrusted sources.
+- **Fail2ban / SSHGuard**: rate-limit brute-force attempts on the
+  remaining allowed sources.
+
+If an attacker gains SSH access to the PBS, they can reach every node.
+Limiting who can SSH into the PBS is the single most effective hardening
+measure for this setup.
+
 ### How it works
 
 1. **SSH key setup** -- `setup-keys` generates an ed25519 keypair per server
@@ -372,6 +389,19 @@ proxmox-srvbackup setup-keys
    - Generates an ed25519 keypair at `{ssh_key_dir}/{ssh_key_prefix}_{server_name}` (skips if it already exists)
    - Deploys the public key to the remote server via `ssh-copy-id` using the bootstrap key
    - Tests connectivity using the newly deployed key
+
+**Idempotent -- safe to re-run:**
+
+Running `setup-keys` again is harmless. Existing keypairs are skipped
+(not overwritten), and `ssh-copy-id` only adds the public key if it is not
+already in `authorized_keys`. When you add a new server to the configuration,
+just run `setup-keys` again -- it will generate and deploy the key for the
+new server while leaving all existing keys untouched:
+
+```bash
+# Added [backup.servers.proxmox-new] to the config? Just re-run:
+proxmox-srvbackup setup-keys
+```
 
 **Prerequisites:**
 
