@@ -1,0 +1,265 @@
+[project]
+name = "proxmox_srvbackup"
+version = "1.6.1"
+description = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "rich-click>=1.9.7",
+    "lib_cli_exit_tools>=2.3.0",
+    "lib_log_rich>=6.3.3",
+    "lib_layered_config>=5.5.0",
+    "btx_lib_mail>=1.3.1",
+    "pydantic>=2.12.5",
+    "orjson>=3.11.7",
+]
+license = { text = "MIT" }
+authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
+keywords = ["proxmox", "backup", "zfs", "pull-backup", "proxmox-ve", "cli", "config", "rich-click"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/bitranox/proxmox_srvbackup"
+Repository = "https://github.com/bitranox/proxmox_srvbackup.git"
+Issues = "https://github.com/bitranox/proxmox_srvbackup/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.2",
+  "pytest-cov>=7.1.0",
+  "hypothesis>=6.151.9",
+  "ruff>=0.15.7",
+  "pyright[nodejs]>=1.1.408",
+  "bandit>=1.9.4",
+  "build>=1.4.0",
+  "twine>=6.2.0",
+  "codecov-cli>=11.2.7",
+  "pip-audit>=2.10.0",
+  "textual>=8.1.1",
+  "import-linter>=2.11",
+  "rtoml>=0.13.0",
+  "httpx>=0.28.1",
+  # Transitive CVE pins
+  "jaraco-context>=6.1.2",       # CVE-2025-23949
+  "python-multipart>=0.0.22",    # CVE-2025-24486
+  "wheel>=0.46.3",               # CVE-2025-24049
+  "pynacl>=1.6.2",               # CVE-2025-69277
+  "urllib3>=2.6.3",              # CVE-2025-66471, CVE-2025-66418
+  "virtualenv>=21.2.0",         # CVE-2025-22702
+]
+
+[project.scripts]
+proxmox_srvbackup = "proxmox_srvbackup.entry:main"
+proxmox-srvbackup = "proxmox_srvbackup.entry:main"
+
+[build-system]
+requires = ["hatchling>=1.29.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/proxmox_srvbackup"]
+include = [
+    "src/proxmox_srvbackup/py.typed",
+    "src/proxmox_srvbackup/adapters/config/defaultconfig.toml",
+    "src/proxmox_srvbackup/adapters/config/defaultconfig.d/*.toml",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "E", "W",     # pycodestyle
+  "F",           # pyflakes
+  "I",           # isort
+  "N",           # pep8-naming
+  "UP",          # pyupgrade
+  "B",           # bugbear
+  "A",           # builtins shadowing
+  "C4",          # comprehension simplification
+  "SIM",         # simplification
+  "TCH",         # type-checking imports
+  "RUF",         # ruff-specific
+  "G",           # logging format (catches f-string in logger)
+  "T20",         # print statements
+  "PTH",         # pathlib preference
+  "PLC", "PLE",  # pylint conventions/errors
+  "S",           # flake8-bandit security checks
+  "PERF",        # performance anti-patterns
+  "ERA",         # eradicate dead/commented-out code
+  "FBT",         # boolean trap (boolean positional args)
+  "PLR",         # pylint refactor
+  "PLW",         # pylint warnings
+]
+ignore = [
+  "RUF002",    # ambiguous unicode characters in docstrings (en-dash) - typography choice
+  "RUF022",    # unsorted __all__ - kept in logical grouping order
+  "PLC0415",   # deferred imports inside functions - circular import prevention
+  "TC001",     # stdlib imports at runtime - needed, not just for type hints
+  "TC002",     # third-party imports at runtime - needed, not just for type hints
+  "TC003",     # stdlib imports - same as TC001
+  "TC006",     # cast() type expressions - existing code uses unquoted
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks: unused imports are often intentional for side effects
+"notebooks/*.ipynb" = ["F401"]
+# Tests: assert is standard, test fixtures have passwords, magic values are clearer inline, temp paths are fine
+"tests/*.py" = ["T20", "S101", "S105", "S106", "S108", "FBT001", "FBT003", "PLR0913", "PLR2004"]
+# CLI: Click framework injects boolean params; commands have many options
+"src/proxmox_srvbackup/adapters/cli/**/*.py" = ["FBT001", "FBT002", "PLR0913"]
+# Protocols/adapters: many-param signatures by design
+"src/proxmox_srvbackup/application/*.py" = ["PLR0913"]
+"src/proxmox_srvbackup/adapters/config/*.py" = ["PLR0913"]
+"src/proxmox_srvbackup/adapters/email/*.py" = ["PLR0913"]
+"src/proxmox_srvbackup/adapters/memory/*.py" = ["PLR0913"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+extraPaths = [
+  "src",
+]
+
+[tool.pytest.ini_options]
+addopts = ["--doctest-modules"]
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+pythonpath = ["src"]
+markers = [
+  "os_agnostic: test runs on every supported operating system",
+  "os_windows: test exercises Windows-only behavior",
+  "os_macos: test exercises macOS-only behavior",
+  "os_posix: test exercises behavior requiring POSIX semantics",
+  "os_linux: test exercises Linux-only behavior",
+  "local_only: tests that require the local dev environment (external resources, script composition); skipped in CI",
+  "integration: tests requiring external resources (SMTP, databases, APIs); run via 'bmk ti' or 'mktesti.sh'",
+  "proxmox: tests requiring real Proxmox VE nodes (SSH access, ZFS pools); run manually on backup server",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = false
+# Use a temp directory for the coverage database to avoid SQLite locking
+# issues on network-mounted filesystems. The {envtmpdir} placeholder is
+# not supported by coverage.py, so we use an environment variable with
+# fallback to a cross-platform temp location via the pytest_configure
+# hook in tests/conftest.py. CI also sets COVERAGE_FILE via workflow env.
+#
+# For local development, the pytest hook automatically redirects to
+# tempfile.gettempdir() before pytest-cov creates its Coverage() object.
+# This static fallback catches edge cases where coverage is run directly.
+data_file = "/tmp/.coverage.proxmox_srvbackup"
+source = ["src/proxmox_srvbackup"]
+
+[tool.coverage.report]
+omit = [
+  "tests/*",
+]
+fail_under = 80
+show_missing = true
+
+[tool.coverage.json]
+output = "coverage.json"
+pretty_print = true
+
+[tool.clean]
+# Patterns to remove when running `make clean`
+patterns = [
+  "**/__pycache__",
+  ".hypothesis",
+  ".import_linter_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".pyright",
+  ".mypy_cache",
+  ".tox",
+  ".nox",
+  ".eggs",
+  "*.egg-info",
+  "build",
+  "dist",
+  "htmlcov",
+  ".coverage",
+  "coverage.xml",
+  "codecov.sh",
+  ".cache",
+  "result",
+  ".data_arch_violations.json",
+]
+
+[tool.git]
+# Default git remote for push/release commands
+default-remote = "origin"
+
+[tool.scripts.test]
+# Configuration for CI/CD test runner
+pytest-verbosity = "-vv"
+coverage-report-file = "coverage.xml"
+src-path = "src"
+
+[tool.importlinter]
+root_package = "proxmox_srvbackup"
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Domain is pure (no adapter dependencies)"
+type = "forbidden"
+source_modules = [
+  "proxmox_srvbackup.domain",
+]
+forbidden_modules = [
+  "proxmox_srvbackup.adapters",
+  "proxmox_srvbackup.composition",
+]
+
+[[tool.importlinter.contracts]]
+name = "Clean Architecture layers"
+type = "layers"
+layers = [
+  # Composition wires adapters - can import everything
+  "proxmox_srvbackup.composition",
+  # Adapters implement ports - can import application and domain
+  "proxmox_srvbackup.adapters",
+  # Application defines ports - can import domain
+  "proxmox_srvbackup.application",
+  # Domain is pure - bottom layer
+  "proxmox_srvbackup.domain",
+]
+
+[tool.pip-audit]
+# Known vulnerabilities to ignore (environment-level packages, not project dependencies)
+# PYSEC-2022-42969: py library ReDoS — py 1.11.0 is installed in the development
+#   environment but is not a dependency of this project; no fix available.
+ignore-vulns = [
+  "PYSEC-2022-42969",
+  "PYSEC-2022-43012",  # setuptools 65.5.0 — env-only, not a project dependency
+  "PYSEC-2025-49",     # setuptools 65.5.0 — env-only, not a project dependency
+  "CVE-2024-6345",     # setuptools 65.5.0 — env-only, not a project dependency
+  "CVE-2025-8869",   # pip 24.3.1 — env-only, not a project dependency
+  "CVE-2026-1703",
+  "CVE-2026-25990",
+  "CVE-2026-26007",
+]
+
+[tool.bashate]
+# bashate style settings for .sh files (E003 excluded: indent handled by shfmt)
+max-line-length = 120
+ignores = ["E003"]

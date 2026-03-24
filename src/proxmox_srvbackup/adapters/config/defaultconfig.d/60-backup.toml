@@ -1,0 +1,120 @@
+# Backup configuration for proxmox_srvbackup
+#
+# Pull-based backup: proxmox-pbs connects to each server via SSH and pulls
+# configuration archives and ZFS rpool snapshots.
+#
+# Override via:
+#   .env:  BACKUP__MAX_PARALLEL=8
+#   env:   PROXMOX_SRVBACKUP___BACKUP__MAX_PARALLEL=8
+#   CLI:   --set backup.max_parallel=8
+
+[backup]
+backup_base_dir = "/mnt/zpool-ssd/px-node-backups"
+max_parallel = 4
+retention_count = 3
+ssh_user = "root"
+ssh_connect_timeout = 15
+ssh_key_dir = "/root/.ssh"
+ssh_key_prefix = "backup_pull"
+bootstrap_key = "/etc/credentials/root@anyhost_nopass.key"
+
+[backup.config_paths]
+paths = [
+    # --- Proxmox VE cluster & node configuration ---
+    "/etc/pve",                        # cluster config, VM/CT configs, storage.cfg, user.cfg, acl.cfg, corosync.conf, SSL certs, jobs.cfg, HA, SDN
+    "/etc/network",                    # network interfaces, bridges, VLANs, bonds
+    "/etc/vzdump.conf",                # default vzdump/backup settings
+
+    # --- System identity & DNS ---
+    "/etc/hostname",
+    "/etc/hosts",
+    "/etc/resolv.conf",
+
+    # --- Package management ---
+    "/etc/apt/sources.list",           # main package repos (enterprise vs no-sub)
+    "/etc/apt/sources.list.d",         # additional repos (Ceph, etc.)
+
+    # --- Scheduled tasks ---
+    "/etc/cron.d",
+    "/etc/cron.daily",
+    "/etc/cron.hourly",
+    "/etc/cron.weekly",
+
+    # --- Service daemon settings ---
+    "/etc/default/pvedaemon",          # API daemon (MAX_WORKERS)
+    "/etc/default/pveproxy",           # proxy (TLS, ALLOW_FROM, MAX_WORKERS)
+
+    # --- Kernel & boot ---
+    "/etc/modprobe.d",                 # kernel module configs (IOMMU, ZFS tuning)
+    "/etc/kernel/cmdline",             # kernel boot params (systemd-boot)
+    "/etc/default/grub",               # GRUB kernel params (if GRUB is used)
+    "/etc/sysctl.d",                   # kernel tunables (swappiness, conntrack, net.core)
+
+    # --- Systemd customizations ---
+    "/etc/systemd/system",             # custom units and drop-in overrides
+
+    # --- Time synchronization (critical for cluster) ---
+    "/etc/chrony",                     # chrony config (if installed)
+    "/etc/systemd/timesyncd.conf",     # systemd-timesyncd (if used instead of chrony)
+
+    # --- Mail relay (Proxmox notifications) ---
+    "/etc/postfix",                    # postfix mail relay configuration
+    "/etc/aliases",                    # mail aliases
+
+    # --- SSH ---
+    "/etc/ssh/sshd_config",            # SSH daemon customizations
+
+    # --- Storage subsystems ---
+    "/etc/lvm",                        # LVM configuration (if using LVM/LVM-thin)
+
+    # --- Templates & ISOs ---
+    "/var/lib/vz/template/iso",
+    "/var/lib/vz/template/cache",
+
+    # --- Cluster state ---
+    "/var/lib/corosync",
+    "/var/lib/pve-cluster",
+
+    # --- Site-specific ---
+    "/rotek",
+]
+exclude_patterns = [
+    "/rotek/scripts/credentials",
+    "/etc/systemd/system/*.wants",     # symlink dirs, recreated by systemctl enable
+]
+
+### configuration example ###
+
+# Server definitions
+# Each server needs: hostname (FQDN), zfs_pool (default: rpool)
+# Set is_local = true for the backup server itself (proxmox-pbs)
+#
+# Per-server backup type control:
+#   backup_configfiles = true   (default) back up configuration files
+#   backup_snapshot    = true   (default) back up ZFS rpool snapshot
+# Set backup_snapshot = false for servers without a ZFS rpool.
+
+# [backup.servers.proxmox01]
+# hostname = "proxmox01.local.domain"
+# zfs_pool = "rpool"
+# backup_configfiles = true    # back up configuration files (/etc/pve, etc.)
+# backup_snapshot = true       # back up ZFS rpool snapshot
+
+# [backup.servers.proxmox02]
+# hostname = "proxmox02.local.domain"
+# zfs_pool = "rpool"
+# backup_configfiles = true
+# backup_snapshot = true
+
+# [backup.servers.proxmox03]
+# hostname = "proxmox03.local.domain"
+# zfs_pool = "rpool"
+# backup_configfiles = true
+# backup_snapshot = true
+
+# [backup.servers.proxmox-pbs]
+# hostname = "proxmox-pbs.local.domain"
+# zfs_pool = "rpool"
+# is_local = true
+# backup_configfiles = true
+# backup_snapshot = true
