@@ -1,0 +1,77 @@
+# proxmox-srvbackup.service — Pull-based backup of Proxmox VE nodes
+#
+# Runs on the backup server (typically Proxmox Backup Server). Connects to
+# each configured Proxmox node via SSH, pulls configuration archives and
+# ZFS rpool snapshots, applies retention, and sends a summary email.
+#
+# Triggered by the companion timer unit (proxmox-srvbackup.timer).
+# Can also be started manually: sudo systemctl start proxmox-srvbackup.service
+#
+# Uses `uv tool install` for a permanent local installation.
+# Every start runs `uv tool upgrade` to pull the latest version from PyPI
+# before executing. Runs offline if the network is unavailable (the
+# existing installation is used as-is).
+#
+# Runs as root because the backup process needs:
+#   - SSH access to remote Proxmox nodes (keys in /root/.ssh)
+#   - Write access to the ZFS backup pool (e.g. /mnt/zpool-ssd/px-node-backups)
+#
+# Installation:
+#   1. Install uv system-wide (one-time):
+#      curl -LsSf https://astral.sh/uv/install.sh | sh
+#      cp /root/.local/bin/uv /usr/local/bin/uv
+#      cp /root/.local/bin/uvx /usr/local/bin/uvx
+#      chmod 755 /usr/local/bin/uv /usr/local/bin/uvx
+#
+#   2. Install the tool (one-time):
+#      uv tool install --python /opt/python-latest/bin/python3 proxmox_srvbackup
+#
+#   3. Deploy configuration:
+#      proxmox-srvbackup config-deploy --target user
+#      # Edit ~/.config/proxmox_srvbackup/proxmox_srvbackup.toml to add
+#      # your servers, backup paths, email settings, etc.
+#
+#   4. Generate and deploy SSH keys to all servers:
+#      proxmox-srvbackup setup-keys
+#
+#   5. Deploy the service and timer:
+#      sudo cp proxmox-srvbackup.service /etc/systemd/system/
+#      sudo cp proxmox-srvbackup.timer /etc/systemd/system/
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable --now proxmox-srvbackup.timer
+#
+#   6. Verify the timer is active:
+#      sudo systemctl list-timers proxmox-srvbackup.timer
+#
+# Logs:
+#   journalctl -u proxmox-srvbackup -f
+#
+# Manual trigger:
+#   sudo systemctl start proxmox-srvbackup.service
+#
+# Force update without running backup:
+#   uv tool upgrade proxmox_srvbackup
+
+[Unit]
+Description=Proxmox Server Backup (Pull)
+Documentation=https://github.com/bitranox/proxmox_srvbackup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# Pull the latest version from PyPI before every run.
+# The - prefix makes this non-fatal: if the network is down or the upgrade
+# fails, systemd continues with the existing installed version.
+ExecStartPre=-/usr/local/bin/uv tool upgrade proxmox_srvbackup
+
+ExecStart=/root/.local/bin/proxmox-srvbackup backup
+
+StandardOutput=journal
+StandardError=journal
+
+# Backup runs can take a long time (large ZFS pools, slow networks).
+# Default systemd timeout for oneshot is infinity, but set explicitly
+# to document the expectation. Adjust if your backups take longer.
+TimeoutStartSec=3h

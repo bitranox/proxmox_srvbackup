@@ -186,8 +186,8 @@ proxmox-srvbackup setup-keys
 proxmox-srvbackup backup --dry-run
 
 # 5. (Optional) Install the systemd timer for daily backups
-sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup-backup.service /etc/systemd/system/
-sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup-backup.timer /etc/systemd/system/
+sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup.service /etc/systemd/system/
+sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now proxmox-srvbackup-backup.timer
+sudo systemctl enable --now proxmox-srvbackup.timer
 ```

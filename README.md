@@ -592,22 +592,35 @@ uvx proxmox_srvbackup backup --dry-run
 
 ## Automated Backups with systemd
 
-Systemd unit files are included for daily automated backups.
+Systemd unit files are included for daily automated backups. The service
+automatically upgrades `proxmox_srvbackup` to the latest PyPI version
+before each run. If the network is unavailable, the existing installation
+is used as-is.
 
 ### Install the timer
 
 ```bash
-# Copy service and timer units
-sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup-backup.service /etc/systemd/system/
-sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup-backup.timer /etc/systemd/system/
+# 1. Copy service and timer units
+sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup.service /etc/systemd/system/
+sudo cp src/proxmox_srvbackup/adapters/config/systemd/proxmox-srvbackup.timer /etc/systemd/system/
 
-# Reload systemd, enable and start the timer
+# 2. Reload systemd, enable and start the timer
 sudo systemctl daemon-reload
-sudo systemctl enable --now proxmox-srvbackup-backup.timer
+sudo systemctl enable --now proxmox-srvbackup.timer
 
-# Verify
-sudo systemctl list-timers proxmox-srvbackup-backup.timer
+# 3. Verify the timer is active
+sudo systemctl list-timers proxmox-srvbackup.timer
 ```
+
+### What happens on each timer trigger
+
+1. `ExecStartPre` runs `uv tool upgrade proxmox_srvbackup` to pull the
+   latest version from PyPI. The `-` prefix makes this non-fatal -- if
+   the upgrade fails (network down, PyPI unreachable), the service
+   continues with the currently installed version.
+2. `ExecStart` runs `proxmox-srvbackup backup`, which connects to all
+   configured servers, pulls backups, applies retention, and sends the
+   summary email (if configured).
 
 ### Timer schedule
 
@@ -623,8 +636,18 @@ RandomizedDelaySec=300
 ### Manual trigger
 
 ```bash
-sudo systemctl start proxmox-srvbackup-backup.service
-journalctl -u proxmox-srvbackup-backup.service -f
+sudo systemctl start proxmox-srvbackup.service
+journalctl -u proxmox-srvbackup.service -f
+```
+
+### Logs
+
+```bash
+# Follow live logs
+journalctl -u proxmox-srvbackup -f
+
+# Show logs from the last run
+journalctl -u proxmox-srvbackup --since today
 ```
 
 ---

@@ -6,6 +6,14 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-03-24
+
+### Changed
+- Renamed systemd units from `proxmox-srvbackup-backup.{service,timer}` to `proxmox-srvbackup.{service,timer}`
+- Service now auto-upgrades to latest PyPI version before each backup run (`ExecStartPre`)
+- Fully documented service file with installation steps, prerequisites, and log commands
+- README: updated systemd section with auto-upgrade behavior and log commands
+
 ## [1.6.3] - 2026-03-24
 
 ### Changed
