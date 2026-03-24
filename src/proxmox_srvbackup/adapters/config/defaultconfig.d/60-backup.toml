@@ -75,12 +75,8 @@ paths = [
     # --- Cluster state ---
     "/var/lib/corosync",
     "/var/lib/pve-cluster",
-
-    # --- Site-specific ---
-    "/rotek",
 ]
 exclude_patterns = [
-    "/rotek/scripts/credentials",
     "/etc/systemd/system/*.wants",     # symlink dirs, recreated by systemctl enable
 ]
 

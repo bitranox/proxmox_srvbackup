@@ -6,6 +6,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-03-24
+
+### Removed
+- Site-specific `/rotek` paths from default backup config (belong in user/host config, not defaults)
+
 ## [1.7.0] - 2026-03-24
 
 ### Added
