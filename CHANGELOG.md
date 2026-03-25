@@ -6,6 +6,12 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-03-25
+
+### Added
+- Proxmox Backup Server (PBS) paths in default `config_paths`: `/etc/proxmox-backup`, `/var/lib/proxmox-backup`
+- Clarified PVE-only vs PBS-only comments in default backup config
+
 ## [1.7.2] - 2026-03-24
 
 ### Fixed

@@ -68,13 +68,17 @@ paths = [
     # --- Storage subsystems ---
     "/etc/lvm",                        # LVM configuration (if using LVM/LVM-thin)
 
-    # --- Templates & ISOs ---
+    # --- Templates & ISOs (PVE only) ---
     "/var/lib/vz/template/iso",
     "/var/lib/vz/template/cache",
 
-    # --- Cluster state ---
+    # --- Cluster state (PVE only) ---
     "/var/lib/corosync",
     "/var/lib/pve-cluster",
+
+    # --- Proxmox Backup Server (PBS only) ---
+    "/etc/proxmox-backup",             # datastore.cfg, user.cfg, acl.cfg, remote.cfg, sync.cfg, verify.cfg, tape.cfg, notifications.cfg
+    "/var/lib/proxmox-backup",         # task logs, tokens, catalog cache
 ]
 exclude_patterns = [
     "/etc/systemd/system/*.wants",     # symlink dirs, recreated by systemctl enable

@@ -1,6 +1,6 @@
 [project]
 name = "proxmox_srvbackup"
-version = "1.7.2"
+version = "1.7.3"
 description = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,7 +43,7 @@ dev = [
   "ruff>=0.15.7",
   "pyright[nodejs]>=1.1.408",
   "bandit>=1.9.4",
-  "build>=1.4.0",
+  "build>=1.4.2",
   "twine>=6.2.0",
   "codecov-cli>=11.2.7",
   "pip-audit>=2.10.0",
