@@ -16,10 +16,10 @@
 
 ### What it does
 
-`proxmox_srvbackup` backs up an entire fleet of Proxmox VE nodes from a single
-backup server. It uses a **pull-based** approach: the backup server (typically
-Proxmox Backup Server) connects to each node over SSH, streams a tar archive
-of configuration files and a recursive ZFS rpool snapshot, and writes them
+`proxmox_srvbackup` backs up an entire fleet of Proxmox VE and Proxmox Backup
+Server nodes from a single backup server. It uses a **pull-based** approach:
+the backup server connects to each node over SSH, streams a tar archive of
+configuration files and a recursive ZFS rpool snapshot, and writes them
 directly to local storage. No agent or additional software runs on the
 Proxmox nodes themselves.
 
@@ -54,8 +54,9 @@ measure for this setup.
 1. **SSH key setup** -- `setup-keys` generates an ed25519 keypair per server
    and deploys the public key using an existing bootstrap key.
 2. **Config backup** -- SSH to each node, `tar` the configured paths
-   (`/etc/pve`, `/etc/network`, cron jobs, corosync, etc.), and pipe the
-   compressed archive directly to a local file. No temp files on the remote.
+   (`/etc/pve`, `/etc/proxmox-backup`, `/etc/network`, cron jobs, corosync,
+   etc.), and pipe the compressed archive directly to a local file. No temp
+   files on the remote. Non-existent paths are silently skipped.
 3. **ZFS snapshot** -- Create a recursive ZFS snapshot of the configured
    pool (typically rpool) on the node, stream it with `zfs send -R | gzip -1`
    to a local `.zfs.gz` file, then destroy the remote snapshot. This only
@@ -80,7 +81,7 @@ measure for this setup.
 
 ### Features
 
-- Pull-based backup of Proxmox VE configuration files (tar archives via SSH pipe)
+- Pull-based backup of Proxmox VE and PBS configuration files (tar archives via SSH pipe)
 - Pull-based ZFS rpool recursive snapshots (`zfs send -R | gzip`)
 - Parallel backup execution across multiple servers (configurable thread pool)
 - Per-server SSH key generation and deployment (`setup-keys` command)
@@ -94,7 +95,7 @@ measure for this setup.
 ### Requirements
 
 - **Python 3.10+**
-- **Proxmox VE** nodes accessible via SSH from the backup server
+- **Proxmox VE / PBS** nodes accessible via SSH from the backup server
 - **ZFS** on the backup server for storing snapshot streams
 - **SSH** access with per-server keys (generated via `setup-keys` command)
 - Runtime dependencies: `rich-click`, `lib_layered_config`, `lib_log_rich`, `lib_cli_exit_tools`, `btx_lib_mail`, `pydantic`, `orjson`
@@ -192,7 +193,7 @@ authorized_keys_path = "/etc/pve/priv/authorized_keys"  # Proxmox default
 
 [backup.config_paths]
 paths = [
-    # Proxmox VE cluster & node config
+    # Proxmox VE cluster & node config (PVE only)
     "/etc/pve",                    # cluster config, VM/CT configs, storage, users, SSL, HA, SDN
     "/etc/network",                # interfaces, bridges, VLANs, bonds
     "/etc/vzdump.conf",            # default backup settings
@@ -208,7 +209,7 @@ paths = [
     "/etc/cron.daily",
     "/etc/cron.hourly",
     "/etc/cron.weekly",
-    # Service daemon settings
+    # Service daemon settings (PVE only)
     "/etc/default/pvedaemon",
     "/etc/default/pveproxy",
     # Kernel & boot
@@ -228,9 +229,15 @@ paths = [
     "/etc/ssh/sshd_config",
     # Storage subsystems
     "/etc/lvm",
-    # Cluster state
+    # Templates & ISOs (PVE only)
+    "/var/lib/vz/template/iso",
+    "/var/lib/vz/template/cache",
+    # Cluster state (PVE only)
     "/var/lib/corosync",
     "/var/lib/pve-cluster",
+    # Proxmox Backup Server (PBS only)
+    "/etc/proxmox-backup",         # datastore.cfg, user.cfg, acl.cfg, remote.cfg, sync.cfg, etc.
+    "/var/lib/proxmox-backup",     # task logs, tokens, catalog cache
 ]
 exclude_patterns = [
     "/etc/systemd/system/*.wants",  # symlink dirs, recreated by systemctl enable

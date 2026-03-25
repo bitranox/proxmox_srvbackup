@@ -6,6 +6,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.4] - 2026-03-25
+
+### Changed
+- README: document PBS support alongside PVE (description, features, requirements, config example with PBS paths)
+
 ## [1.7.3] - 2026-03-25
 
 ### Added
