@@ -57,23 +57,27 @@ measure for this setup.
    (`/etc/pve`, `/etc/proxmox-backup`, `/etc/network`, cron jobs, corosync,
    etc.), and pipe the compressed archive directly to a local file. No temp
    files on the remote. Non-existent paths are silently skipped.
-3. **ZFS snapshot** -- Create a recursive ZFS snapshot of the configured
+3. **Package list backup** -- After each config backup, capture the installed
+   package list via `dpkg --get-selections` (machine-readable, re-importable)
+   and `dpkg -l` (human-readable with versions). These text files are stored
+   alongside config archives and subject to the same retention policy.
+4. **ZFS snapshot** -- Create a recursive ZFS snapshot of the configured
    pool (typically rpool) on the node, stream it with `zfs send -R | gzip -1`
    to a local `.zfs.gz` file, then destroy the remote snapshot. This only
    makes sense when VMs and containers do **not** sit on rpool but on a
    separate storage volume -- otherwise the snapshot would include all guest
    data and be impractically large.
-4. **Parallel execution** -- Backups can run across all servers concurrently
+5. **Parallel execution** -- Backups can run across all servers concurrently
    (configurable thread pool, default 4 threads).
-5. **Retention** -- After each run, old backups exceeding `retention_count`
+6. **Retention** -- After each run, old backups exceeding `retention_count`
    are automatically pruned.
-6. **Notification** -- After each backup run, a summary email is sent
+7. **Notification** -- After each backup run, a summary email is sent
    (if configured). The subject line indicates overall status (`[OK]`,
    `[WARNING]`, or `[ERROR]`). The body lists every server with its
    status, duration, and any error messages for failed config or ZFS
    backups. Email is disabled by default -- see
    [Email Configuration](#email-configuration).
-7. **Scheduling** -- Systemd timer/service units are shipped under
+8. **Scheduling** -- Systemd timer/service units are shipped under
    `src/proxmox_srvbackup/adapters/config/systemd/` and must be copied
    manually to `/etc/systemd/system/` (see
    [Automated Backups with systemd](#automated-backups-with-systemd)).
@@ -82,6 +86,7 @@ measure for this setup.
 ### Features
 
 - Pull-based backup of Proxmox VE and PBS configuration files (tar archives via SSH pipe)
+- Installed package list backup (`dpkg --get-selections` and `dpkg -l`) alongside config backups
 - Pull-based ZFS rpool recursive snapshots (`zfs send -R | gzip`)
 - Parallel backup execution across multiple servers (configurable thread pool)
 - Per-server SSH key generation and deployment (`setup-keys` command)
@@ -274,12 +279,15 @@ Backups are organized under `backup_base_dir`:
 ├── proxmox01/
 │   ├── configs/
 │   │   ├── backup_config_proxmox01_2026-03-23_04-30-00.tar.gz
+│   │   ├── packages_selections_proxmox01_2026-03-23_04-30-00.txt
+│   │   ├── packages_list_proxmox01_2026-03-23_04-30-00.txt
 │   │   ├── backup_config_proxmox01_2026-03-22_04-30-00.tar.gz
-│   │   └── backup_config_proxmox01_2026-03-21_04-30-00.tar.gz
+│   │   ├── packages_selections_proxmox01_2026-03-22_04-30-00.txt
+│   │   ├── packages_list_proxmox01_2026-03-22_04-30-00.txt
+│   │   └── ...
 │   └── snapshots/
 │       ├── rpool_snapshot_proxmox01_2026-03-23_04-30-00.zfs.gz
-│       ├── rpool_snapshot_proxmox01_2026-03-22_04-30-00.zfs.gz
-│       └── rpool_snapshot_proxmox01_2026-03-21_04-30-00.zfs.gz
+│       └── ...
 ├── proxmox02/
 │   ├── configs/
 │   └── snapshots/
@@ -312,6 +320,34 @@ tar -tvf backup_config_proxmox01_2026-03-23_04-30-00.tar.gz
 **Important:** Always extract as root (`sudo`). Non-root extraction silently
 maps all files to your user, losing the original uid/gid. The `-p` flag
 preserves file permissions exactly as stored in the archive.
+
+### Restoring Installed Packages
+
+Each config backup includes two package list files:
+
+- `packages_selections_<server>_<timestamp>.txt` -- output of `dpkg --get-selections` (machine-readable, suitable for bulk reinstall)
+- `packages_list_<server>_<timestamp>.txt` -- output of `dpkg -l` (human-readable with version numbers, useful for auditing)
+
+**Reinstall all packages from a selections file:**
+
+```bash
+# On the target server, set the package selections and install
+sudo dpkg --set-selections < packages_selections_proxmox01_2026-03-23_04-30-00.txt
+sudo apt-get dselect-upgrade
+```
+
+**Compare installed packages between two backups:**
+
+```bash
+diff packages_selections_proxmox01_2026-03-22_04-30-00.txt \
+     packages_selections_proxmox01_2026-03-23_04-30-00.txt
+```
+
+**Check which version of a package was installed:**
+
+```bash
+grep nginx packages_list_proxmox01_2026-03-23_04-30-00.txt
+```
 
 ### Restoring ZFS Snapshots
 
@@ -414,6 +450,7 @@ proxmox-srvbackup backup --server proxmox01 --type config --dry-run
 
 1. For each server (in parallel, up to `max_parallel` threads):
    - **Config backup**: SSH to the server, `tar` the configured paths, stream directly to a local `.tar.gz` file
+   - **Package list**: Capture `dpkg --get-selections` and `dpkg -l` output, save as text files alongside config archives
    - **ZFS backup**: Create a recursive ZFS snapshot, `zfs send -R | gzip -1` piped to a local `.zfs.gz` file, then destroy the remote snapshot
 2. Apply retention policy (delete oldest files exceeding `retention_count`)
 3. Print a summary report
