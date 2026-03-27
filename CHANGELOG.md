@@ -11,6 +11,9 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ### Changed
 - Updated CVE exclusion list: added `CVE-2026-25645` (requests 2.32.5 — env-only, not a project dependency)
 
+### Fixed
+- Suppressed `S603` (subprocess call) lint rule in tests via per-file-ignores — subprocess calls with list args are safe in test code, fixes ruff version mismatch between local (0.15.6) and CI (0.15.8)
+
 ## [1.7.4] - 2026-03-25
 
 ### Changed
