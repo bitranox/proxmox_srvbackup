@@ -15,6 +15,9 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Retention policy applied independently per package list type
 - `build_packages_filename()` domain function for consistent naming
 - 12 new tests covering remote, local, dry-run, and retention scenarios
+- README: package restore instructions (`dpkg --set-selections`, `apt-get dselect-upgrade`)
+- README, CONFIG.md, INSTALL.md: best-practice note about using `99-myconfig.toml` for overrides
+- All default config TOML files: "DO NOT EDIT" header directing users to `99-myconfig.toml`
 
 ## [1.7.5] - 2026-03-27
 
