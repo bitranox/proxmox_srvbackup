@@ -681,11 +681,12 @@ sudo systemctl list-timers proxmox-srvbackup.timer
 
 ### What happens on each timer trigger
 
-1. `ExecStartPre` upgrades `proxmox_srvbackup` to the latest PyPI version
-   and deploys updated default config files (`config-deploy --target app --force`).
-   Both steps are non-fatal (prefixed with `-`): if the network is down,
-   the existing installation and config are used as-is. Your `99-myconfig.toml`
-   is never overwritten.
+1. `ExecStartPre` runs three preparation steps (all non-fatal, prefixed
+   with `-`):
+   - `uv tool upgrade proxmox_srvbackup` — pull latest version from PyPI
+   - `config-deploy --target app --force` — deploy updated default config
+     files (your `99-myconfig.toml` is never overwritten)
+   - `setup-keys` — generate and deploy SSH keys for any newly added servers
 2. `ExecStart` runs `proxmox-srvbackup backup`, which connects to all
    configured servers, pulls backups, applies retention, and sends the
    summary email (if configured).

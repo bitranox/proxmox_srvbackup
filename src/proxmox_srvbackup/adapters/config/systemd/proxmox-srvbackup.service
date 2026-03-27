@@ -62,11 +62,13 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 
-# Pull the latest version from PyPI before every run.
-# The - prefix makes this non-fatal: if the network is down or the upgrade
-# fails, systemd continues with the existing installed version.
+# Preparation steps before every run (all non-fatal via - prefix):
+# 1. Pull the latest version from PyPI
+# 2. Deploy updated default config (99-myconfig.toml is never overwritten)
+# 3. Generate/deploy SSH keys for any newly added servers (idempotent)
 ExecStartPre=-/usr/local/bin/uv tool upgrade proxmox_srvbackup
 ExecStartPre=-/root/.local/bin/proxmox-srvbackup config-deploy --target app --force
+ExecStartPre=-/root/.local/bin/proxmox-srvbackup setup-keys
 
 ExecStart=/root/.local/bin/proxmox-srvbackup backup
 
