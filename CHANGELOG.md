@@ -6,6 +6,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-03-27
+
+### Changed
+- Systemd service: added `setup-keys` as third `ExecStartPre` step — new servers get SSH keys deployed automatically on every backup run
+- Systemd service: fixed config path in comments, clarified `--target app --force` deployment
+- Updated INSTALL.md Quick Start to use `--target app --force` with correct system path
+
 ## [1.9.0] - 2026-03-27
 
 ### Changed
