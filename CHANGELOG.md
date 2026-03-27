@@ -6,6 +6,16 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-03-27
+
+### Changed
+- **Breaking (config):** Replaced single `retention_count` with three independent settings:
+  - `zfs_retention_count` (default: 3) — ZFS snapshots per server
+  - `config_retention_count` (default: 30) — config backup archives per server
+  - `packagelist_retention_count` (default: 30) — package list files per server
+- Users with `retention_count` in custom config must migrate to the new keys
+- Updated module_reference.md to v1.8.0 with complete backup system documentation
+
 ## [1.8.0] - 2026-03-27
 
 ### Added
