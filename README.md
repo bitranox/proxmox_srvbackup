@@ -256,9 +256,7 @@ paths = [
     "/etc/proxmox-backup",         # datastore.cfg, user.cfg, acl.cfg, remote.cfg, sync.cfg, etc.
     "/var/lib/proxmox-backup",     # task logs, tokens, catalog cache
 ]
-exclude_patterns = [
-    "/etc/systemd/system/*.wants",  # symlink dirs, recreated by systemctl enable
-]
+exclude_patterns = []
 
 # Server definitions
 [backup.servers.proxmox01]
