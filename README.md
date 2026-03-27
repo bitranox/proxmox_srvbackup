@@ -256,7 +256,10 @@ paths = [
     "/etc/proxmox-backup",         # datastore.cfg, user.cfg, acl.cfg, remote.cfg, sync.cfg, etc.
     "/var/lib/proxmox-backup",     # task logs, tokens, catalog cache
 ]
-exclude_patterns = []
+exclude_patterns = [
+    # "/etc/systemd/system/*.wants",  # exclude if you do not want to backup the enabled/disabled states of services
+    # "/var/lib/vz/template/cache",   # can be downloaded, might be no need to save it
+]
 
 # Server definitions
 [backup.servers.proxmox01]

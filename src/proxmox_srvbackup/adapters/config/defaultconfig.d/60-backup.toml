@@ -85,7 +85,10 @@ paths = [
     "/etc/proxmox-backup",             # datastore.cfg, user.cfg, acl.cfg, remote.cfg, sync.cfg, verify.cfg, tape.cfg, notifications.cfg
     "/var/lib/proxmox-backup",         # task logs, tokens, catalog cache
 ]
-exclude_patterns = []
+exclude_patterns = [
+    # "/etc/systemd/system/*.wants",     # symlink dirs, exclude if You do not want to backup the enabled/disabled states of services
+    # "/var/lib/vz/template/cache",      # can be downloaded, might be no need to save it
+]
 
 ### configuration example ###
 

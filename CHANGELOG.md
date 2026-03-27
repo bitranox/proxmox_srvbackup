@@ -6,6 +6,12 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-03-27
+
+### Changed
+- Config backups now include `/etc/systemd/system/*.wants/` symlink directories — enabled/disabled service state is preserved in the backup
+- `exclude_patterns` default changed from `["/etc/systemd/system/*.wants"]` to `[]` with commented-out examples for optional exclusions
+
 ## [1.9.1] - 2026-03-27
 
 ### Changed
