@@ -2,50 +2,77 @@
 
 ## Status
 
-Complete (v1.1.2+)
+Complete (v1.8.0)
 
 ---
 
 ## Related Files
 
 ### Domain Layer
-- `src/proxmox_srvbackup/domain/behaviors.py` — Pure domain functions (greeting)
-- `src/proxmox_srvbackup/domain/enums.py` — Type-safe enums (OutputFormat, DeployTarget)
+- `src/proxmox_srvbackup/domain/behaviors.py` — Pure domain functions (greeting, timestamp, filename builders, summary formatting)
+- `src/proxmox_srvbackup/domain/enums.py` — Type-safe enums (OutputFormat, DeployTarget, BackupType)
+- `src/proxmox_srvbackup/domain/errors.py` — Domain exceptions (ConfigurationError, DeliveryError, SSHConnectionError, SnapshotError, RetentionError, etc.)
+- `src/proxmox_srvbackup/domain/models.py` — Value objects (ServerConfig, BackupResult, BackupSummary)
 
 ### Application Layer
 - `src/proxmox_srvbackup/application/ports.py` — Callable Protocol definitions for adapter functions
 
-### Adapters Layer
+### Adapters Layer — Backup
+- `src/proxmox_srvbackup/adapters/backup/orchestrator.py` — Parallel backup execution across servers (BackupSettings, backup_all, backup_server)
+- `src/proxmox_srvbackup/adapters/backup/config_backup.py` — Pull config tar archives from remote servers via SSH pipe
+- `src/proxmox_srvbackup/adapters/backup/packages_backup.py` — Capture `dpkg --get-selections` and `dpkg -l` from each server
+- `src/proxmox_srvbackup/adapters/backup/zfs_backup.py` — Pull ZFS rpool recursive snapshots via SSH pipe
+- `src/proxmox_srvbackup/adapters/backup/retention.py` — Prune old backups (keep N newest matching a glob pattern)
+- `src/proxmox_srvbackup/adapters/backup/setup_keys.py` — Generate/deploy per-server ed25519 SSH keys
+
+### Adapters Layer — SSH
+- `src/proxmox_srvbackup/adapters/ssh/commands.py` — ssh_run, ssh_pipe_to_file, local_run, local_pipe_to_file
+
+### Adapters Layer — Configuration
 - `src/proxmox_srvbackup/adapters/config/loader.py` — Configuration loading with LRU caching
 - `src/proxmox_srvbackup/adapters/config/deploy.py` — Configuration deployment
 - `src/proxmox_srvbackup/adapters/config/display.py` — Configuration display (TOML/JSON output, redaction)
 - `src/proxmox_srvbackup/adapters/config/overrides.py` — CLI `--set` override parsing and deep-merge
-- `src/proxmox_srvbackup/adapters/email/sender.py` — SMTP email with EmailConfig (Pydantic)
-- `src/proxmox_srvbackup/adapters/email/validation.py` — Email recipient validation
+- `src/proxmox_srvbackup/adapters/config/permissions.py` — File permission handling for deploy targets
+
+### Adapters Layer — Email
+- `src/proxmox_srvbackup/adapters/email/config.py` — EmailConfig Pydantic model and loader
+- `src/proxmox_srvbackup/adapters/email/transport.py` — SMTP send functions
+- `src/proxmox_srvbackup/adapters/email/sender.py` — Re-exports (backward compat)
+- `src/proxmox_srvbackup/adapters/email/validation.py` — Email address validation
+
+### Adapters Layer — Logging
 - `src/proxmox_srvbackup/adapters/logging/setup.py` — lib_log_rich initialization
+
+### Adapters Layer — CLI
 - `src/proxmox_srvbackup/adapters/cli/` — CLI adapter package:
   - `__init__.py` — Public facade
   - `constants.py` — Shared constants
   - `exit_codes.py` — POSIX exit codes (ExitCode IntEnum)
-  - `traceback.py` — Traceback state management
   - `context.py` — Click context helpers
   - `root.py` — Root command group
-  - `main.py` — Entry point
+  - `main.py` — Entry point (accepts services_factory)
+  - `commands/backup.py` — backup, setup-keys commands
   - `commands/info.py` — info, hello, fail commands
   - `commands/config.py` — config, config-deploy, config-generate-examples commands
-  - `commands/email.py` — send-email, send-notification commands
   - `commands/logging.py` — logdemo command
+  - `commands/email/` — Email commands subpackage:
+    - `__init__.py` — Public exports
+    - `_common.py` — Shared helpers (config loading, error handling, SMTP option decorators)
+    - `send_email.py` — send-email command
+    - `send_notification.py` — send-notification command
 
 ### Adapters Layer (In-Memory / Testing)
-- `src/proxmox_srvbackup/adapters/memory/__init__.py` — Public facade + Protocol conformance assertions
+- `src/proxmox_srvbackup/adapters/memory/backup.py` — In-memory backup adapter (no-op)
 - `src/proxmox_srvbackup/adapters/memory/config.py` — In-memory config adapters
-- `src/proxmox_srvbackup/adapters/memory/email.py` — In-memory email adapters
+- `src/proxmox_srvbackup/adapters/memory/email.py` — In-memory email adapters (spy)
 - `src/proxmox_srvbackup/adapters/memory/logging.py` — In-memory logging (no-op)
 
 ### Composition Layer
-- `src/proxmox_srvbackup/composition/__init__.py` — Wires adapters to ports
+- `src/proxmox_srvbackup/composition/__init__.py` — Wires adapters to ports (build_production, build_testing)
 
 ### Entry Points
+- `src/proxmox_srvbackup/entry.py` — Console script entry point with production wiring
 - `src/proxmox_srvbackup/__main__.py` — Thin shim for `python -m`
 - `src/proxmox_srvbackup/__init__.py` — Public API exports
 - `src/proxmox_srvbackup/__init__conf__.py` — Package metadata constants
@@ -54,20 +81,38 @@ Complete (v1.1.2+)
 - `src/proxmox_srvbackup/adapters/config/defaultconfig.toml` — Base defaults
 - `src/proxmox_srvbackup/adapters/config/defaultconfig.d/40-layered-config.toml` — lib_layered_config integration docs
 - `src/proxmox_srvbackup/adapters/config/defaultconfig.d/50-mail.toml` — Email defaults
+- `src/proxmox_srvbackup/adapters/config/defaultconfig.d/60-backup.toml` — Backup configuration and server definitions
 - `src/proxmox_srvbackup/adapters/config/defaultconfig.d/90-logging.toml` — Logging defaults
+- `src/proxmox_srvbackup/adapters/config/systemd/` — Systemd timer/service units for automated backups
 
 ### Tests
-- `tests/test_behaviors.py` — Domain function tests
+- `tests/test_backup_adapters.py` — Backup adapter pure-logic tests (retention, tar command, SSH command, key path, orchestrator)
+- `tests/test_backup_per_server.py` — Per-server backup type control (_as_bool, _servers_from_config, skip semantics, dry-run)
+- `tests/test_behaviors.py` — Domain function tests (greeting, timestamp, filename builders, summary formatting)
 - `tests/test_cache_effectiveness.py` — LRU cache behavior tests
-- `tests/test_cli.py` — CLI command tests
-- `tests/test_config_overrides.py` — `--set` parsing tests
+- `tests/test_cli_config.py` — CLI config command tests (display, JSON format, section filtering, deploy, profile, redaction)
+- `tests/test_cli_core.py` — Core CLI tests (traceback, main entry, help, hello, fail, info)
+- `tests/test_cli_email.py` — Email CLI integration tests (send-email, send-notification, SMTP overrides)
+- `tests/test_cli_env_file.py` — CLI `--env-file` option tests (path validation, value override)
+- `tests/test_cli_exit_codes.py` — Exit code integration tests
+- `tests/test_cli_overrides.py` — CLI `--set` override integration tests
+- `tests/test_cli_validation.py` — Profile name validation tests
+- `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, apply_overrides)
+- `tests/test_deploy_permissions.py` — Permission option tests
 - `tests/test_display.py` — Config display formatting tests
-- `tests/test_exit_codes.py` — ExitCode enum tests
+- `tests/test_enums.py` — Domain enum tests
+- `tests/test_errors.py` — Domain error type tests
+- `tests/test_logging.py` — Logging configuration model tests
 - `tests/test_mail.py` — Email configuration and sending tests
-- `tests/test_metadata.py` — Package metadata tests
+- `tests/test_metadata.py` — Package metadata tests (PEP 561 marker, pyproject.toml sync)
+- `tests/test_metadata_sync.py` — __init__conf__ constant sync tests
 - `tests/test_module_entry.py` — `python -m` entry tests
+- `tests/test_packages_backup.py` — Package list backup adapter tests (filename, dpkg output, retention, dry-run, local/remote)
 - `tests/test_ports.py` — Protocol conformance tests
-- `tests/test_scripts.py` — Build script tests
+- `tests/test_property_email.py` — Property-based email validation tests (hypothesis)
+- `tests/test_property_overrides.py` — Property-based override tests (hypothesis)
+- `tests/test_ssh_commands.py` — SSH/local command unit tests (mocked subprocess)
+- `tests/test_summary_report.py` — Summary report and subject formatting tests
 
 ---
 
@@ -79,8 +124,10 @@ Complete (v1.1.2+)
 |------------------|-------|----------------|
 | `domain/` | Domain | Pure logic — no I/O, logging, or frameworks |
 | `application/ports.py` | Application | Protocol definitions for adapters |
-| `adapters/config/` | Adapters | Configuration loading, deployment, display |
-| `adapters/email/` | Adapters | SMTP email sending |
+| `adapters/backup/` | Adapters | Backup orchestration, config/ZFS/packages backup, retention, SSH key setup |
+| `adapters/ssh/` | Adapters | SSH command execution and file streaming |
+| `adapters/config/` | Adapters | Configuration loading, deployment, display, permissions |
+| `adapters/email/` | Adapters | SMTP email sending, validation |
 | `adapters/logging/` | Adapters | lib_log_rich initialization |
 | `adapters/cli/` | Adapters | Click CLI framework integration |
 | `adapters/memory/` | Adapters | In-memory implementations for testing |
@@ -128,7 +175,26 @@ POSIX-conventional exit codes defined in `adapters/cli/exit_codes.py`:
 | `--traceback / --no-traceback` | Show full Python traceback on errors |
 | `--profile NAME` | Load configuration from a named profile |
 | `--set SECTION.KEY=VALUE` | Override configuration setting (repeatable) |
+| `--env-file PATH` | Explicit `.env` file path (skips upward directory search) |
 | `-h, --help` | Show help and exit |
+
+### backup
+
+Pull backups from all configured Proxmox servers.
+
+| Option | Description |
+|--------|-------------|
+| `--server NAME` | Backup only this server (by name from config) |
+| `--type [all\|config\|zfs]` | Backup type filter (default: all) |
+| `--dry-run` | Show what would be executed without running backups |
+
+**Exit codes:** 0, 1
+
+### setup-keys
+
+Generate per-server ed25519 keypairs and deploy public keys to remote servers.
+
+**Exit codes:** 0, 1
 
 ### info
 
@@ -168,6 +234,9 @@ Deploy default configuration to system or user directories.
 | `--target [app\|host\|user]` | Target layer(s) — required, repeatable |
 | `--force` | Overwrite existing files |
 | `--profile NAME` | Deploy to profile subdirectory |
+| `--permissions / --no-permissions` | Enable/disable Unix permission setting |
+| `--dir-mode MODE` | Override directory permissions (octal) |
+| `--file-mode MODE` | Override file permissions (octal) |
 
 **Exit codes:** 0, 1, 13 (permission denied)
 
@@ -272,7 +341,7 @@ Raises `ValueError` with descriptive message on invalid input.
 
 ### EmailConfig Fields
 
-The `EmailConfig` Pydantic model (`adapters/email/sender.py`) provides validated, immutable email configuration:
+The `EmailConfig` Pydantic model (`adapters/email/config.py`) provides validated, immutable email configuration:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -321,6 +390,50 @@ config = load_email_config_from_dict(config_dict)
 
 ---
 
+## Backup System
+
+### Backup Flow
+
+1. **Orchestrator** (`backup_all`) dispatches servers to `backup_server` via ThreadPoolExecutor
+2. **Per-server** (`backup_server`) extracts settings, resolves SSH key, runs enabled backup types
+3. **Config backup** (`backup_config`) streams tar archive via SSH pipe to local `.tar.gz`
+4. **Package list** (`backup_packages`) captures `dpkg --get-selections` and `dpkg -l` to local `.txt` files
+5. **ZFS backup** (`backup_zfs`) creates recursive snapshot, streams via `zfs send -R | gzip -1`
+6. **Retention** (`apply_retention`) prunes old files per type, keeping N newest
+
+### BackupSettings
+
+Extracted from config via `extract_backup_settings()`:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `backup_base_dir` | `Path` | `/mnt/zpool-ssd/px-node-backups` | Base directory for backups |
+| `max_parallel` | `int` | `4` | Concurrent backup threads |
+| `retention_count` | `int` | `3` | Number of backups to keep per server |
+| `ssh_user` | `str` | `root` | SSH user for remote connections |
+| `ssh_connect_timeout` | `int` | `15` | SSH connection timeout in seconds |
+| `ssh_key_dir` | `str` | `/root/.ssh` | Directory for SSH keys |
+| `ssh_key_prefix` | `str` | `backup_pull` | Key filename prefix |
+| `bootstrap_key` | `str` | `""` | Bootstrap key for initial deployment |
+| `authorized_keys_path` | `str` | `/etc/pve/priv/authorized_keys` | Remote authorized_keys path |
+| `config_paths` | `list[str]` | `[]` | Paths to include in config backup |
+| `exclude_patterns` | `list[str]` | `[]` | Patterns to exclude from config backup |
+
+### Backup Storage Layout
+
+```
+{backup_base_dir}/
+├── {server_name}/
+│   ├── configs/
+│   │   ├── backup_config_{server}_{timestamp}.tar.gz
+│   │   ├── packages_selections_{server}_{timestamp}.txt
+│   │   └── packages_list_{server}_{timestamp}.txt
+│   └── snapshots/
+│       └── {pool}_snapshot_{server}_{timestamp}.zfs.gz
+```
+
+---
+
 ## Testing Infrastructure
 
 ### In-Memory Adapters
@@ -329,6 +442,7 @@ The `adapters/memory/` package provides lightweight implementations for testing:
 
 | Module | Protocols Satisfied |
 |--------|---------------------|
+| `memory/backup.py` | In-memory backup adapter (no-op) |
 | `memory/config.py` | `GetConfig`, `GetDefaultConfigPath`, `DeployConfiguration`, `DisplayConfig` |
 | `memory/email.py` | `SendEmail`, `SendNotification`, `LoadEmailConfigFromDict` |
 | `memory/logging.py` | `InitLogging` |
@@ -340,12 +454,14 @@ Use `composition.build_testing()` to wire all in-memory adapters.
 | Fixture | Purpose |
 |---------|---------|
 | `config_factory` | Creates real `Config` instances from test data |
-| `inject_config` | Injects config into CLI path |
+| `source_info_factory` | Creates `SourceInfo` dicts for provenance-tracking tests |
+| `inject_config` | Monkeypatches `get_config` to return a pre-built real `Config` |
+| `email_cli_context` | Self-contained email testing: factory + spy bundled together |
 | `cli_runner` | Fresh `CliRunner` per test |
-| `strip_ansi` | Strips ANSI escape codes from output |
-| `clear_config_cache` | Clears LRU cache before tests |
-| `managed_traceback_state` | Resets/restores traceback configuration |
+| `clear_config_cache` | Clears `get_config` LRU cache before each test |
+| `strip_ansi` | Strips ANSI escape sequences from CLI output |
+| `managed_traceback_state` | Resets traceback flags to a known baseline and restores after test |
 
 ---
 
-**Last Updated:** 2026-01-30 (attachment security)
+**Last Updated:** 2026-03-27 (v1.8.0 — packages backup, backup system documentation)
