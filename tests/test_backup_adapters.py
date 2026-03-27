@@ -156,7 +156,9 @@ class TestBackupSettings:
         s = BackupSettings(
             backup_base_dir=Path("/mnt/backups"),
             max_parallel=4,
-            retention_count=3,
+            zfs_retention_count=3,
+            config_retention_count=30,
+            packagelist_retention_count=30,
             ssh_user="root",
             ssh_connect_timeout=15,
             ssh_key_dir="/root/.ssh",
@@ -170,7 +172,9 @@ class TestBackupSettings:
         s = BackupSettings(
             backup_base_dir=Path("/mnt/backups"),
             max_parallel=4,
-            retention_count=3,
+            zfs_retention_count=3,
+            config_retention_count=30,
+            packagelist_retention_count=30,
             ssh_user="root",
             ssh_connect_timeout=15,
             ssh_key_dir="/root/.ssh",

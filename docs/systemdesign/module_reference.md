@@ -409,7 +409,9 @@ Extracted from config via `extract_backup_settings()`:
 |-------|------|---------|-------------|
 | `backup_base_dir` | `Path` | `/mnt/zpool-ssd/px-node-backups` | Base directory for backups |
 | `max_parallel` | `int` | `4` | Concurrent backup threads |
-| `retention_count` | `int` | `3` | Number of backups to keep per server |
+| `zfs_retention_count` | `int` | `3` | Number of ZFS snapshots to keep per server |
+| `config_retention_count` | `int` | `30` | Number of config backups to keep per server |
+| `packagelist_retention_count` | `int` | `30` | Number of package list files to keep per server |
 | `ssh_user` | `str` | `root` | SSH user for remote connections |
 | `ssh_connect_timeout` | `int` | `15` | SSH connection timeout in seconds |
 | `ssh_key_dir` | `str` | `/root/.ssh` | Directory for SSH keys |

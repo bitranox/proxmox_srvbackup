@@ -37,7 +37,9 @@ class BackupSettings:
 
     backup_base_dir: Path
     max_parallel: int
-    retention_count: int
+    zfs_retention_count: int
+    config_retention_count: int
+    packagelist_retention_count: int
     ssh_user: str
     ssh_connect_timeout: int
     ssh_key_dir: str
@@ -60,7 +62,9 @@ def extract_backup_settings(config: Config) -> BackupSettings:
     return BackupSettings(
         backup_base_dir=Path(backup_cfg.get("backup_base_dir", "/mnt/zpool-ssd/px-node-backups")),
         max_parallel=int(backup_cfg.get("max_parallel", 4)),
-        retention_count=int(backup_cfg.get("retention_count", 3)),
+        zfs_retention_count=int(backup_cfg.get("zfs_retention_count", 3)),
+        config_retention_count=int(backup_cfg.get("config_retention_count", 30)),
+        packagelist_retention_count=int(backup_cfg.get("packagelist_retention_count", 30)),
         ssh_user=str(backup_cfg.get("ssh_user", "root")),
         ssh_connect_timeout=int(backup_cfg.get("ssh_connect_timeout", 15)),
         ssh_key_dir=str(backup_cfg.get("ssh_key_dir", "/root/.ssh")),
@@ -114,7 +118,7 @@ def backup_server(
                 ssh_key=ssh_key,
                 ssh_user=settings.ssh_user,
                 ssh_timeout=settings.ssh_connect_timeout,
-                retention_count=settings.retention_count,
+                retention_count=settings.config_retention_count,
                 dry_run=dry_run,
             )
         except Exception as exc:
@@ -129,7 +133,7 @@ def backup_server(
                 ssh_key=ssh_key,
                 ssh_user=settings.ssh_user,
                 ssh_timeout=settings.ssh_connect_timeout,
-                retention_count=settings.retention_count,
+                retention_count=settings.packagelist_retention_count,
                 dry_run=dry_run,
             )
         except Exception as exc:
@@ -146,7 +150,7 @@ def backup_server(
                 ssh_key=ssh_key,
                 ssh_user=settings.ssh_user,
                 ssh_timeout=settings.ssh_connect_timeout,
-                retention_count=settings.retention_count,
+                retention_count=settings.zfs_retention_count,
                 dry_run=dry_run,
             )
         except Exception as exc:

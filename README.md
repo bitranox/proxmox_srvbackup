@@ -196,7 +196,9 @@ The `[backup]` section in configuration controls backup behavior:
 [backup]
 backup_base_dir = "/mnt/zpool-ssd/px-node-backups"
 max_parallel = 4                # concurrent backup threads
-retention_count = 3             # number of backups to keep per server
+zfs_retention_count = 3         # number of ZFS snapshots to keep per server
+config_retention_count = 30     # number of config backups to keep per server
+packagelist_retention_count = 30 # number of package list files to keep per server
 ssh_user = "root"
 ssh_connect_timeout = 15        # seconds
 ssh_key_dir = "/root/.ssh"

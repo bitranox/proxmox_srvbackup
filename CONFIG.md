@@ -505,7 +505,9 @@ The `[backup]` section controls the pull-based backup behavior.
 |-----------------------|---------|----------------------------------|---------------------------------------------------|
 | `backup_base_dir`     | string  | `/mnt/zpool-ssd/px-node-backups` | Local directory for storing backups               |
 | `max_parallel`        | integer | `4`                              | Maximum concurrent backup threads                 |
-| `retention_count`     | integer | `3`                              | Number of backups to keep per server              |
+| `zfs_retention_count` | integer | `3`                              | Number of ZFS snapshots to keep per server        |
+| `config_retention_count` | integer | `30`                          | Number of config backups to keep per server       |
+| `packagelist_retention_count` | integer | `30`                     | Number of package list files to keep per server   |
 | `ssh_user`            | string  | `root`                           | SSH user for remote connections                   |
 | `ssh_connect_timeout` | integer | `15`                             | SSH connection timeout in seconds                 |
 | `ssh_key_dir`         | string  | `/root/.ssh`                     | Directory for per-server SSH keypairs             |
@@ -606,11 +608,11 @@ export PROXMOX_SRVBACKUP___BACKUP__RETENTION_COUNT=5
 
 # Via .env file
 BACKUP__MAX_PARALLEL=8
-BACKUP__RETENTION_COUNT=5
+BACKUP__ZFS_RETENTION_COUNT=5
 
 # Via CLI --set
 proxmox-srvbackup --set backup.max_parallel=8 backup
-proxmox-srvbackup --set backup.retention_count=5 backup
+proxmox-srvbackup --set backup.zfs_retention_count=5 backup
 ```
 
 ---
