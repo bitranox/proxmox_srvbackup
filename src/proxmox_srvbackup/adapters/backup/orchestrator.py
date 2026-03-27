@@ -18,6 +18,7 @@ from proxmox_srvbackup.domain.enums import BackupType
 from proxmox_srvbackup.domain.models import BackupResult, BackupSummary, ServerConfig
 
 from .config_backup import backup_config
+from .packages_backup import backup_packages
 from .zfs_backup import backup_zfs
 
 if TYPE_CHECKING:
@@ -120,6 +121,19 @@ def backup_server(
             config_ok = False
             config_error = str(exc)
             logger.error("Config backup failed for %s: %s", server.name, exc)
+
+        try:
+            backup_packages(
+                server,
+                backup_dir=settings.backup_base_dir,
+                ssh_key=ssh_key,
+                ssh_user=settings.ssh_user,
+                ssh_timeout=settings.ssh_connect_timeout,
+                retention_count=settings.retention_count,
+                dry_run=dry_run,
+            )
+        except Exception as exc:
+            logger.warning("Package list backup failed for %s: %s", server.name, exc)
     elif not server.backup_configfiles:
         config_skipped = True
         logger.info("Config backup disabled for %s (backup_configfiles=false)", server.name)

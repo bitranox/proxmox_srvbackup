@@ -50,6 +50,18 @@ def build_config_filename(server: str, timestamp: str) -> str:
     return f"backup_config_{server}_{timestamp}.tar.gz"
 
 
+def build_packages_filename(server: str, timestamp: str, suffix: str) -> str:
+    """Return the filename for a package list dump.
+
+    Example:
+        >>> build_packages_filename("proxmox01", "2026-03-23_04-30-00", "selections")
+        'packages_selections_proxmox01_2026-03-23_04-30-00.txt'
+        >>> build_packages_filename("proxmox01", "2026-03-23_04-30-00", "list")
+        'packages_list_proxmox01_2026-03-23_04-30-00.txt'
+    """
+    return f"packages_{suffix}_{server}_{timestamp}.txt"
+
+
 def build_snapshot_filename(server: str, pool: str, timestamp: str) -> str:
     """Return the filename for a ZFS snapshot archive.
 
@@ -120,6 +132,7 @@ __all__ = [
     "CANONICAL_GREETING",
     "build_config_filename",
     "build_greeting",
+    "build_packages_filename",
     "build_snapshot_filename",
     "build_snapshot_tag",
     "build_summary_report",

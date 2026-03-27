@@ -6,6 +6,16 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-03-27
+
+### Added
+- Package list backup: saves `dpkg --get-selections` and `dpkg -l` output alongside config backups
+- New `packages_backup.py` adapter with `backup_packages()` function
+- Runs automatically after each config backup (per-server, supports local and remote via SSH)
+- Retention policy applied independently per package list type
+- `build_packages_filename()` domain function for consistent naming
+- 12 new tests covering remote, local, dry-run, and retention scenarios
+
 ## [1.7.5] - 2026-03-27
 
 ### Changed
