@@ -1,6 +1,6 @@
 [project]
 name = "proxmox_srvbackup"
-version = "1.7.4"
+version = "1.7.5"
 description = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -8,7 +8,7 @@ dependencies = [
     "rich-click>=1.9.7",
     "lib_cli_exit_tools>=2.3.0",
     "lib_log_rich>=6.3.3",
-    "lib_layered_config>=5.5.0",
+    "lib_layered_config>=5.5.1",
     "btx_lib_mail>=1.3.1",
     "pydantic>=2.12.5",
     "orjson>=3.11.7",
@@ -40,14 +40,14 @@ dev = [
   "pytest>=9.0.2",
   "pytest-cov>=7.1.0",
   "hypothesis>=6.151.9",
-  "ruff>=0.15.7",
+  "ruff>=0.15.8",
   "pyright[nodejs]>=1.1.408",
   "bandit>=1.9.4",
   "build>=1.4.2",
   "twine>=6.2.0",
-  "codecov-cli>=11.2.7",
+  "codecov-cli>=11.2.8",
   "pip-audit>=2.10.0",
-  "textual>=8.1.1",
+  "textual>=8.2.0",
   "import-linter>=2.11",
   "rtoml>=0.13.0",
   "httpx>=0.28.1",

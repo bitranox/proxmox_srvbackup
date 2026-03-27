@@ -6,6 +6,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.7.5] - 2026-03-27
+
+### Changed
+- Updated CVE exclusion list: added `CVE-2026-25645` (requests 2.32.5 — env-only, not a project dependency)
+
 ## [1.7.4] - 2026-03-25
 
 ### Changed
