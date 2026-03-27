@@ -141,6 +141,12 @@ Deploy bundled default configuration to platform-specific directories.
 | `--dir-mode MODE`  | No       | Override directory permissions (octal: `750` or `0o750`).                         |
 | `--file-mode MODE` | No       | Override file permissions (octal: `640` or `0o640`).                              |
 
+> **Best practice:** Do not edit the deployed default config files directly. Instead,
+> create a `99-myconfig.toml` in the same directory to override only the settings you
+> need. The layered config system merges numbered `.toml` files in order, so your
+> `99-myconfig.toml` takes precedence over the defaults. This way, package updates
+> can safely replace the default files without overwriting your customizations.
+
 #### Basic Examples
 
 ```bash

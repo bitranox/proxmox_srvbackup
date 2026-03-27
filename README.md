@@ -160,6 +160,8 @@ proxmox-srvbackup --version
 
 # 2. Deploy default configuration
 proxmox-srvbackup config-deploy --target app
+# it is best practice to create a 99-myconfig.toml to override default settings, instead of editing default config
+# otherwise updates might overwrite Your config !
 
 # 3. Edit the configuration to add your servers, either via config or .env file
 #    (see Configuration section below)
@@ -179,6 +181,12 @@ proxmox-srvbackup backup
 ## Configuration
 
 See [CONFIG.md](CONFIG.md) for the full configuration reference, including precedence rules, profile support, and customization best practices.
+
+> **Best practice:** Do not edit the deployed default config files directly. Instead,
+> create a `99-myconfig.toml` in the same directory to override only the settings you
+> need. The layered config system merges numbered `.toml` files in order, so your
+> `99-myconfig.toml` takes precedence over the defaults. This way, package updates
+> can safely replace the default files without overwriting your customizations.
 
 ### Backup Configuration
 
@@ -552,6 +560,10 @@ proxmox-srvbackup config-deploy --target user --force
 proxmox-srvbackup config-deploy --target user --profile production
 ```
 
+> **Tip:** After deploying, create a `99-myconfig.toml` in the deployed directory
+> to override settings instead of editing the default files. Updates may overwrite
+> the deployed defaults, but your `99-myconfig.toml` will be preserved.
+
 #### `config-generate-examples` -- Generate example config files
 
 ```bash
@@ -722,7 +734,7 @@ export PROXMOX_SRVBACKUP___EMAIL__SMTP_USERNAME="your-email@gmail.com"
 export PROXMOX_SRVBACKUP___EMAIL__SMTP_PASSWORD="your-app-password"
 ```
 
-**Configuration File:**
+**Configuration File** (add to your `99-myconfig.toml`):
 
 ```toml
 [email]
