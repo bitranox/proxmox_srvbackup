@@ -142,6 +142,8 @@ uv python pin /opt/python-latest/bin/python3
 uv tool install --python /opt/python-latest/bin/python3 proxmox_srvbackup
 # Update (requires network)
 uv tool upgrade proxmox_srvbackup
+# deploy (overwrite) new default config
+proxmox-srvbackup config-deploy --target app --force
 # Run
 proxmox-srvbackup --help
 ```
@@ -159,7 +161,7 @@ For alternative install paths (pip, pipx, source builds, etc.), see
 proxmox-srvbackup --version
 
 # 2. Deploy default configuration
-proxmox-srvbackup config-deploy --target app
+proxmox-srvbackup config-deploy --target app --force
 # it is best practice to create a 99-myconfig.toml to override default settings, instead of editing default config
 # otherwise updates might overwrite Your config !
 
@@ -679,10 +681,11 @@ sudo systemctl list-timers proxmox-srvbackup.timer
 
 ### What happens on each timer trigger
 
-1. `ExecStartPre` runs `uv tool upgrade proxmox_srvbackup` to pull the
-   latest version from PyPI. The `-` prefix makes this non-fatal -- if
-   the upgrade fails (network down, PyPI unreachable), the service
-   continues with the currently installed version.
+1. `ExecStartPre` upgrades `proxmox_srvbackup` to the latest PyPI version
+   and deploys updated default config files (`config-deploy --target app --force`).
+   Both steps are non-fatal (prefixed with `-`): if the network is down,
+   the existing installation and config are used as-is. Your `99-myconfig.toml`
+   is never overwritten.
 2. `ExecStart` runs `proxmox-srvbackup backup`, which connects to all
    configured servers, pulls backups, applies retention, and sends the
    summary email (if configured).

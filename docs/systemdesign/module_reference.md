@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete (v1.8.0)
+Complete (v1.9.0)
 
 ---
 
@@ -466,4 +466,4 @@ Use `composition.build_testing()` to wire all in-memory adapters.
 
 ---
 
-**Last Updated:** 2026-03-27 (v1.8.0 — packages backup, backup system documentation)
+**Last Updated:** 2026-03-27 (v1.9.0 — per-type retention counts, packages backup)

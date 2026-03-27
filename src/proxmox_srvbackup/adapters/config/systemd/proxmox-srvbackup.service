@@ -26,10 +26,11 @@
 #   2. Install the tool (one-time):
 #      uv tool install --python /opt/python-latest/bin/python3 proxmox_srvbackup
 #
-#   3. Deploy configuration:
-#      proxmox-srvbackup config-deploy --target user
-#      # Edit ~/.config/proxmox_srvbackup/proxmox_srvbackup.toml to add
-#      # your servers, backup paths, email settings, etc.
+#   3. Deploy default configuration (system-wide):
+#      proxmox-srvbackup config-deploy --target app --force
+#      # Create /etc/xdg/proxmox-srvbackup/99-myconfig.toml to override
+#      # defaults with your servers, backup paths, email settings, etc.
+#      # Do not edit the deployed defaults — they are overwritten on updates.
 #
 #   4. Generate and deploy SSH keys to all servers:
 #      proxmox-srvbackup setup-keys
@@ -65,6 +66,7 @@ Type=oneshot
 # The - prefix makes this non-fatal: if the network is down or the upgrade
 # fails, systemd continues with the existing installed version.
 ExecStartPre=-/usr/local/bin/uv tool upgrade proxmox_srvbackup
+ExecStartPre=-/root/.local/bin/proxmox-srvbackup config-deploy --target app --force
 
 ExecStart=/root/.local/bin/proxmox-srvbackup backup
 

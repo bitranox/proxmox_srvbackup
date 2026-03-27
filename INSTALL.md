@@ -173,13 +173,13 @@ All methods register both the `proxmox_srvbackup` and
 After installing, complete the initial setup:
 
 ```bash
-# 1. Deploy default configuration
-proxmox-srvbackup config-deploy --target user
+# 1. Deploy default configuration (system-wide, requires root)
+sudo proxmox-srvbackup config-deploy --target app --force
 # Create a 99-myconfig.toml to override defaults instead of editing them directly,
 # otherwise updates might overwrite your config!
 
 # 2. Edit 99-myconfig.toml to add your Proxmox servers
-#    Linux: ~/.config/proxmox-srvbackup/99-myconfig.toml
+#    Linux: /etc/xdg/proxmox-srvbackup/99-myconfig.toml
 
 # 3. Generate and deploy SSH keys
 proxmox-srvbackup setup-keys
