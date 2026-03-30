@@ -145,7 +145,7 @@ jobs:
           && steps.pytest.outcome == 'success'
           && matrix.os == 'ubuntu-latest'
           && matrix.python == needs.setup.outputs.python-latest
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ${{ env.COV_REPORT_FILE }}
           fail_ci_if_error: false
