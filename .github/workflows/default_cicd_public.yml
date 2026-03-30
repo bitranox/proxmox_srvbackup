@@ -11,24 +11,27 @@ on:
 
 jobs:
   setup:
-    name: Extract Python versions from pyproject.toml
+    name: Extract Python versions and OS matrix from pyproject.toml
     runs-on: ubuntu-latest
     outputs:
-      python-versions: ${{ steps.versions.outputs.python-versions }}
-      python-latest: ${{ steps.versions.outputs.python-latest }}
+      python-versions: ${{ steps.metadata.outputs.python-versions }}
+      python-latest: ${{ steps.metadata.outputs.python-latest }}
+      os-matrix: ${{ steps.metadata.outputs.os-matrix }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
-      - name: Parse classifiers for Python versions
-        id: versions
+      - name: Parse pyproject.toml for Python versions and OS matrix
+        id: metadata
         shell: python
         run: |
           import json, os, tomllib
 
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
+
+          # Python versions from classifiers
           classifiers = data.get("project", {}).get("classifiers", [])
           prefix = "Programming Language :: Python :: "
           versions = [
@@ -38,9 +41,15 @@ jobs:
           ]
           if not versions:
               raise SystemExit("No Python X.Y versions found in classifiers")
+
+          # OS matrix from [tool.ci]
+          ci_config = data.get("tool", {}).get("ci", {})
+          os_list = ci_config.get("os", ["ubuntu-latest"])
+
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"python-versions={json.dumps(versions)}\n")
               fh.write(f"python-latest={versions[-1]}\n")
+              fh.write(f"os-matrix={json.dumps(os_list)}\n")
 
   test:
     name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
@@ -49,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(needs.setup.outputs.os-matrix) }}
         python: ${{ fromJSON(needs.setup.outputs.python-versions) }}
     env:
       PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
@@ -77,23 +86,67 @@ jobs:
         id: metadata
         uses: ./.github/actions/extract-metadata
 
-      - name: Install journald prerequisites
+      - name: Install CI system dependencies (Ubuntu)
         if: runner.os == 'Linux'
-        shell: bash
+        shell: python
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-systemd
+          import subprocess, tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-ubuntu", [])
+          if deps:
+              print(f"Installing system packages: {' '.join(deps)}")
+              subprocess.check_call(["sudo", "apt-get", "update"])
+              subprocess.check_call(["sudo", "apt-get", "install", "-y", *deps])
+          else:
+              print("No CI system dependencies configured for Ubuntu.")
+
+      - name: Install CI system dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: python
+        run: |
+          import subprocess, tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-macos", [])
+          if deps:
+              print(f"Installing system packages: {' '.join(deps)}")
+              subprocess.check_call(["brew", "install", *deps])
+          else:
+              print("No CI system dependencies configured for macOS.")
 
       - name: Install dev deps
         shell: bash
         run: |
           uv pip install -e .[dev] --system
 
-      - name: Install Windows Event Log prerequisites
+      - name: Install CI system dependencies (Windows/choco)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: python
         run: |
-          uv pip install pywin32 --system
+          import subprocess, tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-choco", [])
+          if deps:
+              print(f"Installing choco packages: {' '.join(deps)}")
+              subprocess.check_call(["choco", "install", "-y", *deps])
+          else:
+              print("No CI choco dependencies configured for Windows.")
+
+      - name: Install CI pip dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: python
+        run: |
+          import subprocess, tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-pip", [])
+          if deps:
+              print(f"Installing pip packages: {' '.join(deps)}")
+              subprocess.check_call(["uv", "pip", "install", *deps, "--system"])
+          else:
+              print("No CI pip dependencies configured for Windows.")
 
       # Self-hosted runners persist ruff cache via RUFF_CACHE_DIR volume mount,
       # so actions/cache is only needed on GitHub-hosted runners.

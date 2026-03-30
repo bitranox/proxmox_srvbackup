@@ -30,6 +30,15 @@ classifiers = [
   "Typing :: Typed",
 ]
 
+# System packages required for CI runners (read by GitHub Actions workflow template)
+# Format: "apt_package_name" for Ubuntu, future: {"apt": "...", "brew": "...", "choco": "..."}
+[tool.ci]
+system-dependencies-ubuntu = []
+system-dependencies-macos = []
+system-dependencies-windows-pip = []
+system-dependencies-windows-choco = []
+os = ["ubuntu-latest", "windows-latest", "macos-latest"]
+
 [project.urls]
 Homepage = "https://github.com/bitranox/proxmox_srvbackup"
 Repository = "https://github.com/bitranox/proxmox_srvbackup.git"
