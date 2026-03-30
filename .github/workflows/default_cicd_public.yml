@@ -90,7 +90,11 @@ jobs:
         if: runner.os == 'Linux'
         shell: python
         run: |
-          import subprocess, tomllib
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
           deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-ubuntu", [])
@@ -105,7 +109,11 @@ jobs:
         if: runner.os == 'macOS'
         shell: python
         run: |
-          import subprocess, tomllib
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
           deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-macos", [])
@@ -124,7 +132,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: python
         run: |
-          import subprocess, tomllib
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
           deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-choco", [])
@@ -138,7 +150,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: python
         run: |
-          import subprocess, tomllib
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
           with open("pyproject.toml", "rb") as f:
               data = tomllib.load(f)
           deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-pip", [])
