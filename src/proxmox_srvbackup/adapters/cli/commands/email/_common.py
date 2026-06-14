@@ -22,6 +22,7 @@ from proxmox_srvbackup.application.ports import LoadEmailConfigFromDict
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
 
 from ...exit_codes import ExitCode
+from ...typed_click import option
 
 logger = logging.getLogger(__name__)
 
@@ -80,23 +81,23 @@ def smtp_config_options(func: Callable[..., Any]) -> Callable[..., Any]:
     can be overridden at invocation time.
     """
     options = [
-        click.option(
+        option(
             "--smtp-host",
             "smtp_hosts",
             multiple=True,
             default=(),
             help="Override SMTP host (can specify multiple; format host:port)",
         ),
-        click.option("--smtp-username", default=None, help="Override SMTP authentication username"),
-        click.option("--smtp-password", default=None, help="Override SMTP authentication password"),
-        click.option("--use-starttls/--no-use-starttls", default=None, help="Override STARTTLS setting"),
-        click.option("--timeout", "timeout", type=float, default=None, help="Override socket timeout in seconds"),
-        click.option(
+        option("--smtp-username", default=None, help="Override SMTP authentication username"),
+        option("--smtp-password", default=None, help="Override SMTP authentication password"),
+        option("--use-starttls/--no-use-starttls", default=None, help="Override STARTTLS setting"),
+        option("--timeout", "timeout", type=float, default=None, help="Override socket timeout in seconds"),
+        option(
             "--raise-on-missing-attachments/--no-raise-on-missing-attachments",
             default=None,
             help="Override missing attachment handling",
         ),
-        click.option(
+        option(
             "--raise-on-invalid-recipient/--no-raise-on-invalid-recipient",
             default=None,
             help="Override invalid recipient handling",

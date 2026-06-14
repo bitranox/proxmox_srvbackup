@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 from ...constants import CLICK_CONTEXT_SETTINGS
 from ...context import get_cli_context
+from ...typed_click import option
 from ._common import (
     apply_validated_overrides,
     execute_with_email_error_handling,
@@ -53,20 +54,18 @@ def _log_send_email_start(
 
 
 @click.command("send-email", context_settings=CLICK_CONTEXT_SETTINGS)
-@click.option(
+@option(
     "--to",
     "recipients",
     multiple=True,
     required=False,
     help="Recipient email address (can specify multiple; uses config default if not specified)",
 )
-@click.option("--subject", required=True, help="Email subject line")
-@click.option("--body", default="", help="Plain-text email body")
-@click.option("--body-html", default="", help="HTML email body (sent as multipart with plain text)")
-@click.option(
-    "--from", "from_address", default=None, help="Override sender address (uses config default if not specified)"
-)
-@click.option(
+@option("--subject", required=True, help="Email subject line")
+@option("--body", default="", help="Plain-text email body")
+@option("--body-html", default="", help="HTML email body (sent as multipart with plain text)")
+@option("--from", "from_address", default=None, help="Override sender address (uses config default if not specified)")
+@option(
     "--attachment",
     "attachments",
     multiple=True,

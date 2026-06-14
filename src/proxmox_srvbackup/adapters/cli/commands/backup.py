@@ -23,6 +23,7 @@ from proxmox_srvbackup.domain.models import BackupSummary, ServerConfig
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
+from ..typed_click import option
 
 logger = logging.getLogger(__name__)
 
@@ -69,20 +70,20 @@ def _servers_from_config(config: Mapping[str, Any]) -> list[ServerConfig]:
 
 
 @click.command("backup", context_settings=CLICK_CONTEXT_SETTINGS)
-@click.option(
+@option(
     "--server",
     type=str,
     default=None,
     help="Backup only this server (by name from config).",
 )
-@click.option(
+@option(
     "--type",
     "backup_type",
     type=click.Choice([t.value for t in BackupType], case_sensitive=False),
     default=BackupType.ALL.value,
     help="Type of backup to perform.",
 )
-@click.option(
+@option(
     "--dry-run",
     is_flag=True,
     default=False,

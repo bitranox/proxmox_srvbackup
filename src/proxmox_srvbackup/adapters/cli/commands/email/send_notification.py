@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from ...constants import CLICK_CONTEXT_SETTINGS
 from ...context import get_cli_context
+from ...typed_click import option
 from ._common import (
     apply_validated_overrides,
     execute_with_email_error_handling,
@@ -27,18 +28,16 @@ logger = logging.getLogger(__name__)
 
 
 @click.command("send-notification", context_settings=CLICK_CONTEXT_SETTINGS)
-@click.option(
+@option(
     "--to",
     "recipients",
     multiple=True,
     required=False,
     help="Recipient email address (can specify multiple; uses config default if not specified)",
 )
-@click.option("--subject", required=True, help="Notification subject line")
-@click.option("--message", required=True, help="Notification message (plain text)")
-@click.option(
-    "--from", "from_address", default=None, help="Override sender address (uses config default if not specified)"
-)
+@option("--subject", required=True, help="Notification subject line")
+@option("--message", required=True, help="Notification message (plain text)")
+@option("--from", "from_address", default=None, help="Override sender address (uses config default if not specified)")
 @smtp_config_options
 @click.pass_context
 def cli_send_notification(
