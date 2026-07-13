@@ -5,13 +5,13 @@ description = "Pull-based Proxmox server backup tool — configuration and ZFS r
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "rich-click>=1.9.7",
+    "rich-click>=1.9.8",
     "lib_cli_exit_tools>=2.3.2",
     "lib_log_rich>=6.3.5",
-    "lib_layered_config>=5.5.2",
+    "lib_layered_config>=5.6.0",
     "btx_lib_mail>=1.3.2",
-    "pydantic>=2.12.5",
-    "orjson>=3.11.7",
+    "pydantic>=2.13.4",
+    "orjson>=3.11.9",
 ]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
@@ -46,27 +46,27 @@ Issues = "https://github.com/bitranox/proxmox_srvbackup/issues"
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=9.0.2",
+  "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.151.9",
-  "ruff>=0.15.8",
-  "pyright[nodejs]>=1.1.408",
+  "hypothesis>=6.156.6",
+  "ruff>=0.15.21",
+  "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
-  "build>=1.4.2",
+  "build>=1.5.1",
   "twine>=6.2.0",
-  "codecov-cli>=11.2.8",
-  "pip-audit>=2.10.0",
-  "textual>=8.2.0",
-  "import-linter>=2.11",
+  "codecov-cli>=11.3.1",
+  "pip-audit>=2.10.1",
+  "textual>=8.2.8",
+  "import-linter>=2.13",
   "rtoml>=0.13.0",
-  "httpx2>=2.2.0",
+  "httpx2>=2.5.0",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
-  "python-multipart>=0.0.22",    # CVE-2025-24486
-  "wheel>=0.46.3",               # CVE-2025-24049
+  "python-multipart>=0.0.32",    # CVE-2025-24486
+  "wheel>=0.47.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
-  "urllib3>=2.6.3",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.2.0",         # CVE-2025-22702
+  "urllib3>=2.7.0",              # CVE-2025-66471, CVE-2025-66418
+  "virtualenv>=21.6.1",         # CVE-2025-22702
 ]
 
 [project.scripts]
@@ -74,7 +74,7 @@ proxmox_srvbackup = "proxmox_srvbackup.entry:main"
 proxmox-srvbackup = "proxmox_srvbackup.entry:main"
 
 [build-system]
-requires = ["hatchling>=1.29.0"]
+requires = ["hatchling>=1.31.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
@@ -269,6 +269,7 @@ ignore-vulns = [
   "CVE-2026-26007",
   "CVE-2026-4539",    # pygments 2.19.2 — ReDoS in AdlLexer, env-only, no fix available
   "CVE-2026-25645",
+  "PYSEC-2026-2132",      # click 8.2.1: click.edit() command injection (fixed 8.3.3); dev-env-only, codecov-cli caps click<8.3.0, app never calls click.edit()
 ]
 
 [tool.bashate]
