@@ -6,6 +6,18 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.9.4] 2026-07-20
+
+### Fixed
+- `config-deploy` now prints an ASCII marker for each written file. A non-ASCII glyph raised `UnicodeEncodeError` on a legacy Windows console codepage (cp1252) after the files were already written, so the command exited 1 and misreported a deploy that had actually succeeded.
+- Invalid `--profile` values raise `ValueError` again. Newer `lib_layered_config` raises its own `ValidationError`, which slipped past callers' `except ValueError` guards; the adapter normalises it back to the documented contract.
+- The email test suite works against `btx_lib_mail` 1.5.0, which streams messages through the low-level SMTP envelope (`MAIL FROM` / `RCPT TO` / `DATA`) instead of `sendmail` and exposes `ConfMail.smtp_password` as a `SecretStr`.
+
+### Changed
+- Dependency floor raised to `btx_lib_mail>=1.5.0`. The email tests assert against the streaming SMTP contract introduced there, and they do not pass on 1.4.0.
+- Email tests drive an SMTP double that implements the real `smtplib` contract and records the delivered envelope, replacing a bare `MagicMock` that accepted any call and asserted nothing about delivery.
+- Cleared `[tool.pip-audit].ignore-vulns`. The audit runs against the resolved dependency tree, which no longer contains any of the listed packages at an affected version, so every entry was inert; the table now documents when an entry is warranted.
+
 ## [1.9.3] 2026-06-14
 
 ### Changed
@@ -15,13 +27,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ## [1.9.2] - 2026-03-27
 
 ### Changed
-- Config backups now include `/etc/systemd/system/*.wants/` symlink directories — enabled/disabled service state is preserved in the backup
+- Config backups now include `/etc/systemd/system/*.wants/` symlink directories  -  enabled/disabled service state is preserved in the backup
 - `exclude_patterns` default changed from `["/etc/systemd/system/*.wants"]` to `[]` with commented-out examples for optional exclusions
 
 ## [1.9.1] - 2026-03-27
 
 ### Changed
-- Systemd service: added `setup-keys` as third `ExecStartPre` step — new servers get SSH keys deployed automatically on every backup run
+- Systemd service: added `setup-keys` as third `ExecStartPre` step  -  new servers get SSH keys deployed automatically on every backup run
 - Systemd service: fixed config path in comments, clarified `--target app --force` deployment
 - Updated INSTALL.md Quick Start to use `--target app --force` with correct system path
 
@@ -29,9 +41,9 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ### Changed
 - **Breaking (config):** Replaced single `retention_count` with three independent settings:
-  - `zfs_retention_count` (default: 3) — ZFS snapshots per server
-  - `config_retention_count` (default: 30) — config backup archives per server
-  - `packagelist_retention_count` (default: 30) — package list files per server
+  - `zfs_retention_count` (default: 3)  -  ZFS snapshots per server
+  - `config_retention_count` (default: 30)  -  config backup archives per server
+  - `packagelist_retention_count` (default: 30)  -  package list files per server
 - Users with `retention_count` in custom config must migrate to the new keys
 - Updated module_reference.md to v1.8.0 with complete backup system documentation
 
@@ -51,10 +63,10 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ## [1.7.5] - 2026-03-27
 
 ### Changed
-- Updated CVE exclusion list: added `CVE-2026-25645` (requests 2.32.5 — env-only, not a project dependency)
+- Updated CVE exclusion list: added `CVE-2026-25645` (requests 2.32.5  -  env-only, not a project dependency)
 
 ### Fixed
-- Suppressed `S603` (subprocess call) lint rule in tests via per-file-ignores — subprocess calls with list args are safe in test code, fixes ruff version mismatch between local (0.15.6) and CI (0.15.8)
+- Suppressed `S603` (subprocess call) lint rule in tests via per-file-ignores  -  subprocess calls with list args are safe in test code, fixes ruff version mismatch between local (0.15.6) and CI (0.15.8)
 
 ## [1.7.4] - 2026-03-25
 
@@ -224,13 +236,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ## [1.3.1] - 2026-02-13
 
 ### Fixed
-- `tests/test_metadata_sync.py`: replaced `importlib.metadata` lookups with direct `pyproject.toml` reads — tests no longer fail when the package is not installed in the test environment (uvx)
+- `tests/test_metadata_sync.py`: replaced `importlib.metadata` lookups with direct `pyproject.toml` reads  -  tests no longer fail when the package is not installed in the test environment (uvx)
 - Makefile `dev` target now correctly installs dev extras (`uv pip install -e ".[dev]"`)
 
 ### Changed
 - CLAUDE.md: updated project structure trees to reflect actual codebase (added `entry.py`, `domain/errors.py`, `adapters/memory/`, `adapters/config/permissions.py`, `adapters/email/validation.py`; removed deleted `traceback.py`)
 - CLAUDE.md: rewrote Make targets table to match new `bmk`-based Makefile (added aliases, new targets; removed obsolete `menu`, `test-slow`)
-- CLAUDE.md: corrected versioning documentation — runtime metadata is served from `__init__conf__.py` constants, not `importlib.metadata`
+- CLAUDE.md: corrected versioning documentation  -  runtime metadata is served from `__init__conf__.py` constants, not `importlib.metadata`
 - CLAUDE.md: replaced stale `scripts/` instrumentation section with `bmk` delegation note
 - CLAUDE.md: updated `make test-slow` references to `make testintegration`
 
@@ -262,17 +274,17 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Profile name requirements documentation in CONFIG.md and README.md
 
 ### Removed
-- Custom `_PROFILE_PATTERN` regex — replaced by lib_layered_config's built-in validation
+- Custom `_PROFILE_PATTERN` regex  -  replaced by lib_layered_config's built-in validation
 
 ## [1.2.0] - 2026-01-30
 
 ### Added
 - **Attachment security settings** for email configuration (`[email.attachments]` section in `50-mail.toml`)
-  - `allowed_extensions` / `blocked_extensions` — whitelist/blacklist file extensions
-  - `allowed_directories` / `blocked_directories` — whitelist/blacklist attachment source directories
-  - `max_size_bytes` — maximum attachment file size (default 25 MiB, 0 to disable)
-  - `allow_symlinks` — whether symbolic links are permitted (default false)
-  - `raise_on_security_violation` — raise or skip on violations (default true)
+  - `allowed_extensions` / `blocked_extensions`  -  whitelist/blacklist file extensions
+  - `allowed_directories` / `blocked_directories`  -  whitelist/blacklist attachment source directories
+  - `max_size_bytes`  -  maximum attachment file size (default 25 MiB, 0 to disable)
+  - `allow_symlinks`  -  whether symbolic links are permitted (default false)
+  - `raise_on_security_violation`  -  raise or skip on violations (default true)
 - New `EmailConfig` fields for attachment security with Pydantic validators
 - `load_email_config_from_dict()` now flattens nested `[email.attachments]` section
 
@@ -285,17 +297,17 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Coverage SQLite "database is locked" errors on Python 3.14 free-threaded builds and network mounts (SMB/NFS)
 - Removed bogus `COVERAGE_NO_SQL=1` environment variable from `scripts/test.py` (not a real coverage.py setting)
 - CI workflow now sets `COVERAGE_FILE` to `runner.temp` so coverage always writes to local disk
-- **Import-linter was a silent no-op** in `make test` / `make push` — `python -m importlinter.cli lint` silently exits 0 without checking; replaced with `lint-imports` (the working console entry point)
+- **Import-linter was a silent no-op** in `make test` / `make push`  -  `python -m importlinter.cli lint` silently exits 0 without checking; replaced with `lint-imports` (the working console entry point)
 - CI/local parameter mismatches: ruff now targets `.` (not hardcoded `src tests notebooks`), pytest uses `python -m pytest` with `--cov=src/$PACKAGE_MODULE`, `--cov-fail-under=90`, and `-vv` matching local runs
 - `scripts/test.py` bandit source path now reads `src-path` from `[tool.scripts.test]` instead of hardcoding `Path("src")`
 - `scripts/test.py` module-level `_default_env` now rebuilt with configured `src_path` before running checks
 - `run_slow_tests()` now reads pytest verbosity from `[tool.scripts.test].pytest-verbosity` instead of hardcoding `"-vv"`
 
 ### Changed
-- **pyproject.toml as single source of truth**: CI workflow extracts all tool configuration (src-path, pytest-verbosity, coverage-report-file, fail_under, bandit skips) from `pyproject.toml` via metadata step — workflow is portable across projects without editing
+- **pyproject.toml as single source of truth**: CI workflow extracts all tool configuration (src-path, pytest-verbosity, coverage-report-file, fail_under, bandit skips) from `pyproject.toml` via metadata step  -  workflow is portable across projects without editing
 - `scripts/test.py` removed module-level `PACKAGE_SRC` constant; bandit source path computed from `config.src_path` inside the functions that need it
 - `make push` now accepts an unquoted message as trailing words (e.g. `make push fix typo in readme`); commit message format is `<version> - <message>`, defaulting to `<version> - chores` when no message is given
-- Removed interactive commit-message prompt from `push.py` — message is either provided via CLI args / `COMMIT_MESSAGE` env var, or defaults to `"chores"`
+- Removed interactive commit-message prompt from `push.py`  -  message is either provided via CLI args / `COMMIT_MESSAGE` env var, or defaults to `"chores"`
 
 ### Added
 - `pytest_configure` hook in `tests/conftest.py` that redirects coverage data to `tempfile.gettempdir()` and purges stale SQLite journal files before each run
@@ -305,8 +317,8 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ### Fixed
 - CLAUDE.md: replaced stale package name `bitranox_template_cli_app_config_log_mail` with `proxmox_srvbackup` throughout
 - Brittle SMTP mock assertions in `test_cli.py` now use structured `call_args` attributes instead of `str()` coercion
-- Stale docstring in `__init__conf__.py` claiming "adapters/platform layer" — corrected to "Package-level metadata module"
-- Weak OR assertion in `test_cli.py` for SMTP host display — replaced with two independent assertions
+- Stale docstring in `__init__conf__.py` claiming "adapters/platform layer"  -  corrected to "Package-level metadata module"
+- Weak OR assertion in `test_cli.py` for SMTP host display  -  replaced with two independent assertions
 - Removed stale `# type: ignore[reportUnknownVariableType]` from `sender.py` (`btx_lib_mail.ConfMail` now has proper type annotations)
 - Late function-body imports in `adapters/cli/commands/config.py` moved to module-level for consistency
 
@@ -359,7 +371,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Precompile all regex patterns in `scripts/` as module-level constants for consistent compilation
 - **LIBRARIES**: Replace custom redaction/validation with `lib_layered_config` redaction API and `btx_lib_mail` validators; bump both libraries
 - **LIBRARIES**: Replace stdlib `json` with `orjson`; replace `urllib` with `httpx` in scripts
-- **ARCHITECTURE**: Purified domain layer — `emit_greeting()` renamed to `build_greeting()` (returns `str`, no I/O); decoupled `display.py` from Click
+- **ARCHITECTURE**: Purified domain layer  -  `emit_greeting()` renamed to `build_greeting()` (returns `str`, no I/O); decoupled `display.py` from Click
 - **DATA ARCHITECTURE**: Consolidated `EmailConfig` into single Pydantic `BaseModel` (eliminated dataclass conversion chain)
 
 ## [1.0.0] - 2026-01-15

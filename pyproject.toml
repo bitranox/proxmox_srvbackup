@@ -1,6 +1,6 @@
 [project]
 name = "proxmox_srvbackup"
-version = "1.9.3"
+version = "1.9.4"
 description = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -48,8 +48,8 @@ Issues = "https://github.com/bitranox/proxmox_srvbackup/issues"
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.156.6",
-  "ruff>=0.15.21",
+  "hypothesis>=6.157.0",
+  "ruff>=0.15.22",
   "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
   # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable
@@ -264,21 +264,16 @@ layers = [
 ]
 
 [tool.pip-audit]
-# Known vulnerabilities to ignore (environment-level packages, not project dependencies)
-# PYSEC-2022-42969: py library ReDoS — py 1.11.0 is installed in the development
-#   environment but is not a dependency of this project; no fix available.
-ignore-vulns = [
-  "PYSEC-2022-42969",
-  "PYSEC-2022-43012",  # setuptools 65.5.0 — env-only, not a project dependency
-  "PYSEC-2025-49",     # setuptools 65.5.0 — env-only, not a project dependency
-  "CVE-2024-6345",     # setuptools 65.5.0 — env-only, not a project dependency
-  "CVE-2025-8869",   # pip 24.3.1 — env-only, not a project dependency
-  "CVE-2026-1703",
-  "CVE-2026-25990",
-  "CVE-2026-26007",
-  "CVE-2026-4539",    # pygments 2.19.2 — ReDoS in AdlLexer, env-only, no fix available
-  "CVE-2026-25645",
-]
+# Vulnerability ids the audit gate must not fail on. The audit runs against the
+# resolved dependency tree ("uv pip compile --extra dev"), so an entry here only
+# has an effect while that tree actually contains the affected package at an
+# affected version.
+#
+# Prefer a version floor in the dev extra (see the "Transitive CVE pins" block
+# above) over an entry here: a floor fixes the finding, an entry only hides it.
+# Add an id only when no fixed release exists, always with the package, the
+# version, and the reason inline.
+ignore-vulns = []
 
 [tool.bashate]
 # bashate style settings for .sh files (E003 excluded: indent handled by shfmt)

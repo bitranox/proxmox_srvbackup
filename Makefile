@@ -1,4 +1,4 @@
-# BMK MAKEFILE 3.9.0
+# BMK MAKEFILE 3.11.2
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile — thin wrapper using `uv tool install` for persistent bmk
@@ -145,7 +145,7 @@ endif
 #
 # BMK_MIN is kept as a floor even though nothing can cap bmk any more (that needed the
 # co-resolution this recipe no longer does). It is inert insurance and costs nothing.
-BMK_MIN := 3.9.0
+BMK_MIN := 3.11.2
 
 # Refresh bmk's cached index metadata so a new release is seen the moment it exists -
 # EXCEPT when uv is in offline mode, where uv refuses the combination outright ("the
@@ -166,9 +166,9 @@ _ensure_bmk:
 # instead of: make push ARGS="fix login bug"
 
 # All targets that accept trailing arguments
-_BMK_TARGETS := test t test-human th testintegration testi ti testintegration-human tih \
+_BMK_TARGETS := test t test-all test-human th testintegration testi ti testintegration-human tih \
 	codecov coverage cov \
-	build bld clean cln cl run ensure \
+	build bld clean cln cl clean-all run ensure \
 	bump-major bump-minor bump-patch bump \
 	commit c push psh p release rel r ship sh \
 	dependencies deps d dependencies-update \
@@ -192,6 +192,10 @@ test: _ensure_bmk  ## Run test suite [alias: t]
 	$(BMK) test $(ARGS)
 t: _ensure_bmk
 	$(BMK) test $(ARGS)
+
+.PHONY: test-all
+test-all: _ensure_bmk  ## Run pytest + pyright on every declared Python version (matrix)
+	$(BMK) test-all $(ARGS)
 
 .PHONY: test-human th
 test-human: _ensure_bmk  ## Run test suite with human-readable output [alias: th]
@@ -232,6 +236,10 @@ clean: _ensure_bmk  ## Remove build artifacts and caches [aliases: cln, cl]
 	$(BMK) clean $(ARGS)
 cln cl: _ensure_bmk
 	$(BMK) clean $(ARGS)
+
+.PHONY: clean-all
+clean-all: _ensure_bmk  ## Remove build artifacts, caches AND every virtual environment (.venv*)
+	$(BMK) clean-all $(ARGS)
 
 # ──────────────────────────────────────────────────────────────
 # Run
