@@ -8,6 +8,7 @@ email operations.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,6 +21,94 @@ from proxmox_srvbackup.adapters.email.sender import (
     send_notification,
 )
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
+
+# ======================== SMTP test double ========================
+
+
+class _FakeSocket:
+    """Collects the bytes btx_lib_mail streams during the DATA phase."""
+
+    def __init__(self) -> None:
+        self.sent = bytearray()
+
+    def sendall(self, data: bytes) -> None:
+        self.sent.extend(data)
+
+
+class _FakeSMTP:
+    """In-memory stand-in for :class:`smtplib.SMTP` honouring the commands btx_lib_mail issues.
+
+    btx_lib_mail streams messages through the low-level envelope (MAIL FROM /
+    RCPT TO / DATA) rather than ``sendmail``, and unpacks every reply as a
+    ``(code, response)`` pair. A bare ``MagicMock`` returns an unpackable mock
+    for those calls, so the fake implements the real contract instead and
+    records what was delivered for assertions.
+    """
+
+    instances: ClassVar[list[_FakeSMTP]] = []
+
+    def __init__(self, host: str = "", port: int = 0, timeout: float | None = None) -> None:
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.sender: str | None = None
+        self.recipients: list[str] = []
+        self.credentials: tuple[str, str] | None = None
+        self.started_tls = False
+        self.sock = _FakeSocket()
+        _FakeSMTP.instances.append(self)
+
+    def __enter__(self) -> _FakeSMTP:
+        return self
+
+    def __exit__(self, *exc_info: object) -> bool:
+        return False
+
+    def ehlo_or_helo_if_needed(self) -> None:
+        return None
+
+    def ehlo(self, name: str = "") -> tuple[int, bytes]:
+        return (250, b"OK")
+
+    def starttls(self, context: object = None) -> tuple[int, bytes]:
+        self.started_tls = True
+        return (220, b"ready to start TLS")
+
+    def login(self, username: str, password: str) -> tuple[int, bytes]:
+        self.credentials = (username, password)
+        return (235, b"authenticated")
+
+    def has_extn(self, name: str) -> bool:
+        # Advertise no CHUNKING so delivery takes the classic DATA path.
+        return False
+
+    def mail(self, sender: str, options: object = ()) -> tuple[int, bytes]:
+        self.sender = sender
+        return (250, b"OK")
+
+    def rcpt(self, recipient: str, options: object = ()) -> tuple[int, bytes]:
+        self.recipients.append(recipient)
+        return (250, b"OK")
+
+    def docmd(self, cmd: str, args: str = "") -> tuple[int, bytes]:
+        if cmd.upper() == "DATA":
+            return (354, b"end data with <CR><LF>.<CR><LF>")
+        return (250, b"OK")
+
+    def getreply(self) -> tuple[int, bytes]:
+        return (250, b"OK")
+
+    @property
+    def message(self) -> str:
+        """The raw message streamed during the DATA phase."""
+        return self.sock.sent.decode("utf-8", errors="replace")
+
+
+@pytest.fixture(autouse=True)
+def reset_fake_smtp() -> None:
+    """Keep recorded deliveries from leaking between tests."""
+    _FakeSMTP.instances.clear()
+
 
 # ======================== EmailConfig Default Values ========================
 
@@ -305,7 +394,9 @@ def test_to_conf_mail_maps_credentials() -> None:
     conf = config.to_conf_mail()
 
     assert conf.smtp_username == "user"
-    assert conf.smtp_password == "pass"
+    # btx_lib_mail wraps the password in a SecretStr so it is masked in repr().
+    assert conf.smtp_password is not None
+    assert conf.smtp_password.get_secret_value() == "pass"
 
 
 @pytest.mark.os_agnostic
@@ -482,7 +573,7 @@ def test_send_email_delivers_simple_message() -> None:
         from_address="sender@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="recipient@test.com",
@@ -501,7 +592,7 @@ def test_send_email_includes_html_body() -> None:
         from_address="sender@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="recipient@test.com",
@@ -521,7 +612,7 @@ def test_send_email_accepts_multiple_recipients() -> None:
         from_address="sender@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients=["user1@test.com", "user2@test.com"],
@@ -540,7 +631,7 @@ def test_send_email_allows_sender_override() -> None:
         from_address="default@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="recipient@test.com",
@@ -566,7 +657,7 @@ def test_send_email_includes_attachments(tmp_path: Path) -> None:
         attachment_blocked_directories=frozenset(),
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="recipient@test.com",
@@ -588,7 +679,7 @@ def test_send_email_uses_credentials_when_provided() -> None:
         smtp_password="testpass",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="recipient@test.com",
@@ -610,7 +701,7 @@ def test_send_notification_delivers_plain_text_message() -> None:
         from_address="alerts@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_notification(
             config=config,
             recipients="admin@test.com",
@@ -629,7 +720,7 @@ def test_send_notification_accepts_multiple_recipients() -> None:
         from_address="alerts@test.com",
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_notification(
             config=config,
             recipients=["admin1@test.com", "admin2@test.com"],
@@ -648,8 +739,7 @@ def test_send_notification_forwards_from_address_override() -> None:
         from_address="default@test.com",
     )
 
-    with patch("smtplib.SMTP") as mock_smtp:
-        mock_instance = mock_smtp.return_value.__enter__.return_value
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_notification(
             config=config,
             recipients="admin@test.com",
@@ -659,10 +749,10 @@ def test_send_notification_forwards_from_address_override() -> None:
         )
 
     assert result is True
-    # Verify the overridden from_address was used in the SMTP sendmail call
-    mock_instance.sendmail.assert_called_once()
-    call_args = mock_instance.sendmail.call_args
-    assert call_args[0][0] == "override@test.com"
+    # Verify the overridden from_address was used as the SMTP envelope sender
+    assert len(_FakeSMTP.instances) == 1
+    assert _FakeSMTP.instances[0].sender == "override@test.com"
+    assert _FakeSMTP.instances[0].recipients == ["admin@test.com"]
 
 
 # ======================== send_email — from_address validation ========================
@@ -793,7 +883,7 @@ def test_send_email_raises_when_attachment_missing(tmp_path: Path) -> None:
         attachment_blocked_directories=frozenset(),
     )
 
-    with patch("smtplib.SMTP"), pytest.raises(FileNotFoundError):
+    with patch("smtplib.SMTP", _FakeSMTP), pytest.raises(FileNotFoundError):
         send_email(
             config=config,
             recipients="recipient@test.com",
@@ -831,13 +921,9 @@ def test_send_email_falls_back_to_second_host_when_first_fails() -> None:
         from_address="sender@test.com",
     )
 
-    success_mock = MagicMock()
-    success_mock.__enter__ = MagicMock(return_value=success_mock)
-    success_mock.__exit__ = MagicMock(return_value=False)
-
-    side_effects: list[MagicMock | ConnectionError] = [
+    side_effects: list[_FakeSMTP | ConnectionError] = [
         ConnectionError("First host down"),
-        success_mock,
+        _FakeSMTP(),
     ]
 
     with patch("smtplib.SMTP", side_effect=side_effects) as mock_smtp:
@@ -849,6 +935,8 @@ def test_send_email_falls_back_to_second_host_when_first_fails() -> None:
         )
 
     assert mock_smtp.call_count == 2, "SMTP should have been attempted twice (first fail, second succeed)"
+    # The surviving host received the envelope, proving fallback actually delivered.
+    assert _FakeSMTP.instances[-1].recipients == ["recipient@test.com"]
 
 
 # ======================== EmailConfig Recipients Defaults ========================
@@ -920,7 +1008,7 @@ def test_send_email_uses_config_recipients_when_parameter_is_none() -> None:
         recipients=["default@test.com"],
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             subject="Test Subject",
@@ -939,7 +1027,7 @@ def test_send_email_parameter_overrides_config_recipients() -> None:
         recipients=["config@test.com"],
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_email(
             config=config,
             recipients="override@test.com",
@@ -1014,7 +1102,7 @@ def test_send_notification_uses_config_recipients_when_parameter_is_none() -> No
         recipients=["admin@test.com"],
     )
 
-    with patch("smtplib.SMTP"):
+    with patch("smtplib.SMTP", _FakeSMTP):
         result = send_notification(
             config=config,
             subject="Alert",
