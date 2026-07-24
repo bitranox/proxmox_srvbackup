@@ -20,7 +20,7 @@ from .transport import send_email, send_notification
 
 __all__ = [
     "EmailConfig",
+    "load_email_config_from_dict",
     "send_email",
     "send_notification",
-    "load_email_config_from_dict",
 ]

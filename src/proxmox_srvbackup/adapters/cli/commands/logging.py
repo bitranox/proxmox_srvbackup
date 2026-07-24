@@ -19,8 +19,8 @@ from ..typed_click import option
 @click.pass_context
 def cli_logdemo(ctx: click.Context, theme: str) -> None:
     """Run a logging demonstration to preview log output."""
-    import lib_log_rich
-    import lib_log_rich.runtime
+    import lib_log_rich  # noqa: PLC0415 - deferred: logdemo needs an uninitialised runtime, imported only when invoked
+    import lib_log_rich.runtime  # noqa: PLC0415 - deferred: logdemo needs an uninitialised runtime, imported only when invoked
 
     # logdemo() requires uninitialized runtime
     if lib_log_rich.runtime.is_initialised():

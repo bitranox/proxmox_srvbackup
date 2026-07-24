@@ -67,7 +67,7 @@ class EmailConfig(BaseModel):
         if isinstance(v, str):
             return [v] if v.strip() else []
         if isinstance(v, list):
-            return cast(list[str], v)
+            return cast("list[str]", v)
         return []
 
     @field_validator("from_address", "smtp_username", "smtp_password", mode="before")
@@ -101,10 +101,10 @@ class EmailConfig(BaseModel):
             return None
         if isinstance(v, frozenset):
             # Preserve frozensets as-is (allows explicit empty frozenset to disable)
-            return cast(frozenset[str], v)
+            return cast("frozenset[str]", v)
         if isinstance(v, list):
             # Empty list from config = use library defaults
-            ext_list = cast(list[str], v)
+            ext_list = cast("list[str]", v)
             return frozenset(ext_list) if ext_list else None
         return None  # Unsupported type, let Pydantic handle validation error
 
@@ -124,10 +124,10 @@ class EmailConfig(BaseModel):
             return None
         if isinstance(v, frozenset):
             # Preserve frozensets as-is (allows explicit empty frozenset to disable)
-            return cast(frozenset[Path], v)
+            return cast("frozenset[Path]", v)
         if isinstance(v, list):
             # Empty list from config = use library defaults
-            dir_list = cast(list[str | Path], v)
+            dir_list = cast("list[str | Path]", v)
             if not dir_list:
                 return None
             return frozenset(Path(p) if isinstance(p, str) else p for p in dir_list)
@@ -295,7 +295,7 @@ def load_email_config_from_dict(config_dict: Mapping[str, Any]) -> EmailConfig:
     if not isinstance(email_section, Mapping):
         return EmailConfig.model_validate(email_section)
 
-    email_raw: dict[str, Any] = dict(cast(Mapping[str, Any], email_section))
+    email_raw: dict[str, Any] = dict(cast("Mapping[str, Any]", email_section))
 
     # Flatten nested [email.attachments] section with prefix
     attachments_raw: dict[str, Any] = email_raw.pop("attachments", {})

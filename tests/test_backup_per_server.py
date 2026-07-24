@@ -12,11 +12,8 @@ Verifies that:
 from __future__ import annotations
 
 import tempfile
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
-
-from click.testing import CliRunner
+from typing import TYPE_CHECKING, Any
 
 from proxmox_srvbackup.adapters.cli.commands.backup import (
     _as_bool,  # pyright: ignore[reportPrivateUsage]
@@ -24,6 +21,11 @@ from proxmox_srvbackup.adapters.cli.commands.backup import (
 )
 from proxmox_srvbackup.adapters.cli.root import cli
 from proxmox_srvbackup.domain.models import BackupResult, BackupSummary
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from click.testing import CliRunner
 
 # ---------------------------------------------------------------------------
 # _as_bool helper

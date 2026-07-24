@@ -6,14 +6,15 @@ without performing any I/O.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from proxmox_srvbackup.domain.enums import BackupType
 from proxmox_srvbackup.domain.models import BackupResult, BackupSummary, ServerConfig
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
     from lib_layered_config import Config
 
 

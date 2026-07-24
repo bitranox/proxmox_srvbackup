@@ -8,9 +8,8 @@ Contents:
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import lib_log_rich.runtime
 import rich_click as click
@@ -24,6 +23,9 @@ from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
 from ..typed_click import option
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
 

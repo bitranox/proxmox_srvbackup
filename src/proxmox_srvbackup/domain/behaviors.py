@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from .models import (
-    BackupResult,  # noqa: F401  # pyright: ignore[reportUnusedImport] — used in doctests
-    BackupSummary,
-)
+if TYPE_CHECKING:
+    from .models import BackupSummary
 
 CANONICAL_GREETING = "Hello World"
 
@@ -86,6 +85,7 @@ def build_summary_report(summary: BackupSummary) -> str:
     """Format a backup summary into a human-readable report.
 
     Example:
+        >>> from proxmox_srvbackup.domain.models import BackupResult, BackupSummary
         >>> s = BackupSummary(
         ...     results=(BackupResult(server="px01", config_ok=True, zfs_ok=True, duration_seconds=10.5),),
         ...     total_duration_seconds=10.5,
@@ -117,6 +117,7 @@ def build_summary_subject(summary: BackupSummary) -> str:
     """Return an email subject line with status tag.
 
     Example:
+        >>> from proxmox_srvbackup.domain.models import BackupResult, BackupSummary
         >>> s = BackupSummary(results=(BackupResult(server="a", config_ok=True, zfs_ok=True),))
         >>> build_summary_subject(s)
         '[OK] Proxmox Backup Summary'

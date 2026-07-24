@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def cli_send_notification(
     ctx: click.Context,
+    *,
     recipients: tuple[str, ...],
     subject: str,
     message: str,

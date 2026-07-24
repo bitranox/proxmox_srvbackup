@@ -7,7 +7,7 @@ error handling, file creation, and cleanup without real SSH connections.
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,6 +19,9 @@ from proxmox_srvbackup.adapters.ssh.commands import (
     ssh_run,
 )
 from proxmox_srvbackup.domain.errors import SSHConnectionError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # ssh_run

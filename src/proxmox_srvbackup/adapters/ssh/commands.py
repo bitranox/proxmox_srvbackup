@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import logging
 import subprocess  # nosec B404
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from proxmox_srvbackup.domain.errors import SSHConnectionError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

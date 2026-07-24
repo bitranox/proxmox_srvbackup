@@ -22,17 +22,17 @@ from __future__ import annotations
 import sys
 
 __all__ = [
-    "name",
-    "title",
-    "version",
-    "homepage",
-    "author",
-    "author_email",
-    "shell_command",
-    "LAYEREDCONF_VENDOR",
     "LAYEREDCONF_APP",
     "LAYEREDCONF_SLUG",
+    "LAYEREDCONF_VENDOR",
+    "author",
+    "author_email",
+    "homepage",
+    "name",
     "print_info",
+    "shell_command",
+    "title",
+    "version",
 ]
 
 #: Distribution name declared in ``pyproject.toml``.
@@ -40,7 +40,7 @@ name = "proxmox_srvbackup"
 #: Human-readable summary shown in CLI help output.
 title = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 #: Current release version pulled from ``pyproject.toml`` by automation.
-version = "1.9.4"
+version = "1.9.5"
 #: Repository homepage presented to users.
 homepage = "https://github.com/bitranox/proxmox_srvbackup"
 #: Author attribution surfaced in CLI output.

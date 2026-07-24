@@ -6,11 +6,14 @@ rather than library-specific exceptions.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from btx_lib_mail import validate_email_address
 
 from proxmox_srvbackup.domain.errors import InvalidRecipientError
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def validate_recipient(recipient: str) -> None:

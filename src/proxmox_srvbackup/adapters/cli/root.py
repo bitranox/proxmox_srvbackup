@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import rich_click as click
-from lib_layered_config import Config
 
 from proxmox_srvbackup import __init__conf__
 from proxmox_srvbackup.adapters.config.overrides import apply_overrides
@@ -22,6 +21,8 @@ from .context import apply_traceback_preferences, store_cli_context
 from .typed_click import option, version_option
 
 if TYPE_CHECKING:
+    from lib_layered_config import Config
+
     from proxmox_srvbackup.composition import AppServices
 
 
@@ -131,7 +132,7 @@ def cli(
 # the ``cli`` group, commands register themselves onto it, and those command
 # modules import from package ancestors. This is the standard Click pattern.
 def _register_commands() -> None:
-    from .commands import (
+    from .commands import (  # noqa: PLC0415 - deferred: breaks the root<->commands circular import (see above)
         cli_backup,
         cli_config,
         cli_config_deploy,

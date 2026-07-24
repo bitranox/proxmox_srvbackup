@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import logging
 import subprocess  # nosec B404
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from proxmox_srvbackup.domain.models import ServerConfig
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from proxmox_srvbackup.domain.models import ServerConfig
 
 logger = logging.getLogger(__name__)
 

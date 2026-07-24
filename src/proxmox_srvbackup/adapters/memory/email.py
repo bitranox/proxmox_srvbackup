@@ -12,13 +12,15 @@ Contents:
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..email.sender import EmailConfig
 from ..email.validation import validate_recipients
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+    from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)

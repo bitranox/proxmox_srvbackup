@@ -76,6 +76,7 @@ def _log_send_email_start(
 @click.pass_context
 def cli_send_email(
     ctx: click.Context,
+    *,
     recipients: tuple[str, ...],
     subject: str,
     body: str,

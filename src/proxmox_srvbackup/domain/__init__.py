@@ -37,6 +37,22 @@ from .models import BackupResult, BackupSummary, ServerConfig
 __all__ = [
     # Behaviors
     "CANONICAL_GREETING",
+    # Errors
+    "BackupError",
+    # Models
+    "BackupResult",
+    "BackupSummary",
+    # Enums
+    "BackupType",
+    "ConfigurationError",
+    "DeliveryError",
+    "DeployTarget",
+    "InvalidRecipientError",
+    "OutputFormat",
+    "RetentionError",
+    "SSHConnectionError",
+    "ServerConfig",
+    "SnapshotError",
     "build_config_filename",
     "build_greeting",
     "build_snapshot_filename",
@@ -44,20 +60,4 @@ __all__ = [
     "build_summary_report",
     "build_summary_subject",
     "build_timestamp",
-    # Enums
-    "BackupType",
-    "DeployTarget",
-    "OutputFormat",
-    # Errors
-    "BackupError",
-    "ConfigurationError",
-    "DeliveryError",
-    "InvalidRecipientError",
-    "RetentionError",
-    "SSHConnectionError",
-    "SnapshotError",
-    # Models
-    "BackupResult",
-    "BackupSummary",
-    "ServerConfig",
 ]

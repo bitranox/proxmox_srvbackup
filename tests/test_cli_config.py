@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
-from click.testing import CliRunner, Result
-from lib_layered_config import Config
 
 from proxmox_srvbackup.adapters import cli as cli_mod
 from proxmox_srvbackup.adapters.config import loader as config_mod
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from click.testing import CliRunner, Result
+    from lib_layered_config import Config
 
 
 @pytest.mark.os_agnostic

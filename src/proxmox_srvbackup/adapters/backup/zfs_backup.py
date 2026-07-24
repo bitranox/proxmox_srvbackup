@@ -7,7 +7,7 @@ snapshot, streams it back compressed, and cleans up the remote snapshot.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from proxmox_srvbackup.adapters.ssh.commands import (
     local_pipe_to_file,
@@ -21,9 +21,13 @@ from proxmox_srvbackup.domain.behaviors import (
     build_timestamp,
 )
 from proxmox_srvbackup.domain.errors import SnapshotError, SSHConnectionError
-from proxmox_srvbackup.domain.models import ServerConfig
 
 from .retention import apply_retention
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from proxmox_srvbackup.domain.models import ServerConfig
 
 logger = logging.getLogger(__name__)
 

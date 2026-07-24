@@ -7,16 +7,20 @@ SMTP communication via btx_lib_mail.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from btx_lib_mail.lib_mail import Transport
 from btx_lib_mail.lib_mail import send as btx_send
 
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
 
-from .config import EmailConfig
 from .validation import validate_recipients
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from .config import EmailConfig
 
 logger = logging.getLogger(__name__)
 

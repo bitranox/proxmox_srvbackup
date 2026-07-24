@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -22,6 +21,8 @@ from .packages_backup import backup_packages
 from .zfs_backup import backup_zfs
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from lib_layered_config import Config
 
 logger = logging.getLogger(__name__)

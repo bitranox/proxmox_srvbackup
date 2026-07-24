@@ -45,14 +45,8 @@ __all__ = [
     # Traceback management
     "TracebackState",
     "apply_traceback_preferences",
-    "restore_traceback_state",
-    "snapshot_traceback_state",
-    # Context helpers
-    "store_cli_context",
     # Root command
     "cli",
-    # Entry point
-    "main",
     # Commands
     "cli_config",
     "cli_config_deploy",
@@ -63,4 +57,10 @@ __all__ = [
     "cli_logdemo",
     "cli_send_email",
     "cli_send_notification",
+    # Entry point
+    "main",
+    "restore_traceback_state",
+    "snapshot_traceback_state",
+    # Context helpers
+    "store_cli_context",
 ]

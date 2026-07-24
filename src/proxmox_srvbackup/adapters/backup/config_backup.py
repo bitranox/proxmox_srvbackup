@@ -8,8 +8,7 @@ No temporary files are created on the remote server.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from proxmox_srvbackup.adapters.ssh.commands import (
     local_pipe_to_file,
@@ -19,9 +18,14 @@ from proxmox_srvbackup.domain.behaviors import (
     build_config_filename,
     build_timestamp,
 )
-from proxmox_srvbackup.domain.models import ServerConfig
 
 from .retention import apply_retention
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from proxmox_srvbackup.domain.models import ServerConfig
 
 logger = logging.getLogger(__name__)
 

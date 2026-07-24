@@ -6,6 +6,17 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.9.5] 2026-07-24
+
+### Fixed
+- CI lint gate is green again under the latest `ruff`. A newer `ruff` began enforcing `PLR0917` (too many positional arguments) on the CLI command callbacks and helpers, turning the scheduled CI red. The callbacks now take keyword-only parameters after `ctx` (Click already invokes them by keyword), and `_execute_deploy` is keyword-only after its first argument, so the rule passes without loosening it.
+
+### Changed
+- Removed the blanket `[tool.ruff.lint].ignore` list (`RUF002`, `RUF022`, `PLC0415`, `TC001`, `TC002`, `TC003`, `TC006`) and fixed each violation at the source instead of suppressing it: sorted `__all__` and type-checking imports via autofix, replaced ambiguous en-dashes with ASCII hyphens in docstrings, and moved trivial deferred imports to module top while keeping the genuinely lazy ones with a rule-specific `# noqa: PLC0415` and a reason.
+- Added `[tool.ruff.lint.flake8-type-checking].runtime-evaluated-base-classes = ["pydantic.BaseModel"]` so Pydantic models keep their field-annotation imports at runtime.
+- `PLC0415` is now ignored only for `tests/*.py`, where deferred imports inside test bodies are a deliberate idiom for exercising import and cache behaviour.
+- Doctests that construct domain models or enums now import those names inside the example, keeping them runnable after the type-only imports moved under `TYPE_CHECKING`.
+
 ## [1.9.4] 2026-07-20
 
 ### Fixed

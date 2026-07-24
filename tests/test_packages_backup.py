@@ -12,7 +12,7 @@ Verifies:
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 from proxmox_srvbackup.adapters.backup.packages_backup import (
@@ -22,6 +22,9 @@ from proxmox_srvbackup.adapters.backup.packages_backup import (
 )
 from proxmox_srvbackup.domain.behaviors import build_packages_filename
 from proxmox_srvbackup.domain.models import ServerConfig
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _FAKE_SELECTIONS = "vim\tinstall\ncurl\tinstall\n"
 _FAKE_DPKG_LIST = "ii  vim  9.0  amd64  Vi IMproved\nii  curl  7.88  amd64  command line tool\n"

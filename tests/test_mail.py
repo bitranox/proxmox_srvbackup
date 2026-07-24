@@ -8,14 +8,11 @@ email operations.
 from __future__ import annotations
 
 import smtplib
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
-from typing import IO
+from typing import IO, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from btx_lib_mail.lib_mail import DeliveryOptions
 from pydantic import ValidationError as PydanticValidationError
 
 from proxmox_srvbackup.adapters.email.sender import (
@@ -25,6 +22,12 @@ from proxmox_srvbackup.adapters.email.sender import (
     send_notification,
 )
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from btx_lib_mail.lib_mail import DeliveryOptions
 
 # ======================== Transport test double ========================
 

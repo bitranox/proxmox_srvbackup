@@ -1,4 +1,4 @@
-"""Application ports — callable Protocol definitions for adapter functions.
+"""Application ports - callable Protocol definitions for adapter functions.
 
 Each Protocol class defines a ``__call__`` method whose signature exactly
 matches the corresponding adapter function.  Existing module-level functions
@@ -12,18 +12,18 @@ System Role:
 
 from __future__ import annotations
 
-import subprocess  # nosec B404
-from collections.abc import Mapping, Sequence
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from ..domain.enums import BackupType, DeployTarget, OutputFormat
-from ..domain.models import BackupResult, BackupSummary, ServerConfig
-
 if TYPE_CHECKING:
+    import subprocess  # nosec B404 - type-only import for annotations; no runtime subprocess call here
+    from collections.abc import Mapping, Sequence
+    from pathlib import Path
+
     from lib_layered_config import Config
 
     from ..adapters.email.sender import EmailConfig
+    from ..domain.enums import BackupType, DeployTarget, OutputFormat
+    from ..domain.models import BackupResult, BackupSummary, ServerConfig
 
 
 class GetConfig(Protocol):
