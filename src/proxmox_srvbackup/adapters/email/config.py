@@ -15,6 +15,49 @@ from btx_lib_mail.lib_mail import ConfMail
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+#: The form an attachment list must take, named by the refusal of any other form.
+_LIST_FORM = 'a list: a TOML array, or in an environment variable a JSON array such as [".pdf", ".txt"]'
+
+
+def _attachment_list(value: object) -> object:
+    """Read an attachment allow or block list as its items, or None when it is not configured.
+
+    These lists are security settings, and None hands the decision to btx_lib_mail's own
+    defaults, so only a value that means "not configured" becomes None: an empty list or
+    tuple (TOML cannot leave a key out of a shipped file, so ``[]`` stands for "not set"), an
+    empty or whitespace-only string (an environment variable set to nothing), or None. A set
+    is an explicit choice from Python code and is kept as given, an empty one included, which
+    disables the list. Any other value is refused: a comma-separated environment value stays
+    a string, and reading it as "not configured" would swap the configured list for the
+    defaults without a word.
+
+    Raises:
+        ValueError: When the value is neither a list, tuple or set nor empty.
+
+    Examples:
+        >>> _attachment_list((".pdf", ".txt"))
+        ['.pdf', '.txt']
+        >>> _attachment_list(frozenset())
+        frozenset()
+        >>> _attachment_list("  ") is None
+        True
+        >>> _attachment_list(".pdf,.txt")  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        ValueError: expected a list: a TOML array, or ... a JSON array ...; got str
+    """
+    if value is None:
+        return None
+    if isinstance(value, (set, frozenset)):
+        return cast("set[object] | frozenset[object]", value)
+    if isinstance(value, (list, tuple)):
+        items = list(cast("list[object] | tuple[object, ...]", value))
+        return items or None
+    if isinstance(value, str) and not value.strip():
+        return None
+    raise ValueError(f"expected {_LIST_FORM}; got {type(value).__name__}")
+
+
 class EmailConfig(BaseModel):
     """Validated, immutable email configuration.
 
@@ -50,11 +93,13 @@ class EmailConfig(BaseModel):
 
     @field_validator("smtp_hosts", "recipients", mode="before")
     @classmethod
-    def _coerce_string_to_list(cls, v: Any) -> list[str]:
+    def _coerce_string_to_list(cls, v: object) -> object:
         """Coerce single strings to single-element lists.
 
         Handles environment variables and .env files that provide single strings
-        instead of TOML arrays. Empty strings become empty lists.
+        instead of TOML arrays. Empty strings become empty lists. Any other value is
+        left for pydantic to read (a tuple) or refuse (a number), never emptied: an
+        emptied list would read as "not configured" instead of as a mistake.
 
         Examples:
             >>> EmailConfig._coerce_string_to_list("smtp.example.com:587")
@@ -66,9 +111,7 @@ class EmailConfig(BaseModel):
         """
         if isinstance(v, str):
             return [v] if v.strip() else []
-        if isinstance(v, list):
-            return cast("list[str]", v)
-        return []
+        return v
 
     @field_validator("from_address", "smtp_username", "smtp_password", mode="before")
     @classmethod
@@ -88,50 +131,24 @@ class EmailConfig(BaseModel):
     @field_validator(
         "attachment_allowed_extensions",
         "attachment_blocked_extensions",
-        mode="before",
-    )
-    @classmethod
-    def _coerce_extension_lists(cls, v: Any) -> frozenset[str] | None:
-        """Convert lists to frozensets, empty lists to None (use library defaults).
-
-        Frozensets are preserved as-is (including empty ones) to allow explicit
-        override from Python code. Empty lists from TOML config become None.
-        """
-        if v is None:
-            return None
-        if isinstance(v, frozenset):
-            # Preserve frozensets as-is (allows explicit empty frozenset to disable)
-            return cast("frozenset[str]", v)
-        if isinstance(v, list):
-            # Empty list from config = use library defaults
-            ext_list = cast("list[str]", v)
-            return frozenset(ext_list) if ext_list else None
-        return None  # Unsupported type, let Pydantic handle validation error
-
-    @field_validator(
         "attachment_allowed_directories",
         "attachment_blocked_directories",
         mode="before",
     )
     @classmethod
-    def _coerce_directory_lists(cls, v: Any) -> frozenset[Path] | None:
-        """Convert lists of strings/paths to frozenset[Path], empty lists to None.
+    def _read_attachment_list(cls, v: object) -> object:
+        """Read an attachment allow or block list, refusing a value that is not a list.
 
-        Frozensets are preserved as-is (including empty ones) to allow explicit
-        override from Python code. Empty lists from TOML config become None.
+        See :func:`_attachment_list`; pydantic then turns the items into the field's frozenset,
+        so an item of the wrong type is refused there with its position.
+
+        Examples:
+            >>> EmailConfig._read_attachment_list([".pdf"])
+            ['.pdf']
+            >>> EmailConfig._read_attachment_list([]) is None
+            True
         """
-        if v is None:
-            return None
-        if isinstance(v, frozenset):
-            # Preserve frozensets as-is (allows explicit empty frozenset to disable)
-            return cast("frozenset[Path]", v)
-        if isinstance(v, list):
-            # Empty list from config = use library defaults
-            dir_list = cast("list[str | Path]", v)
-            if not dir_list:
-                return None
-            return frozenset(Path(p) if isinstance(p, str) else p for p in dir_list)
-        return None  # Unsupported type, let Pydantic handle validation error
+        return _attachment_list(v)
 
     @field_validator("attachment_max_size_bytes", mode="before")
     @classmethod

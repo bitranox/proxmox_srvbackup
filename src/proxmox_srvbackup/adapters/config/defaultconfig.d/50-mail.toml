@@ -40,8 +40,10 @@
 # Purpose: SMTP servers to use for email delivery (tried in order)
 # Type: array of strings in "host[:port]" format
 # Default: [] (empty, must be configured to send email)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__SMTP_HOSTS=smtp.example.com:587,smtp-backup.example.com:587
-# .env: EMAIL__SMTP_HOSTS=smtp.example.com:587,smtp-backup.example.com:587
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__SMTP_HOSTS='["smtp.example.com:587","smtp-backup.example.com:587"]'
+# .env: EMAIL__SMTP_HOSTS=["smtp.example.com:587","smtp-backup.example.com:587"] (unquoted)
+#   or one key per host: EMAIL__SMTP_HOSTS__0=smtp.example.com:587, ...
+# A comma-separated value is NOT a list: it arrives as ONE host string.
 # Note: Port 587 is standard for STARTTLS, 465 for implicit TLS, 25 for plain
 smtp_hosts = []
 
@@ -55,8 +57,10 @@ from_address = ""
 # Purpose: Default recipient addresses for outgoing emails
 # Type: array of strings (valid email addresses)
 # Default: [] (empty, must be configured or passed via --to)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__RECIPIENTS=admin@example.com,ops@example.com
-# .env: EMAIL__RECIPIENTS=admin@example.com,ops@example.com
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__RECIPIENTS='["admin@example.com","ops@example.com"]'
+# .env: EMAIL__RECIPIENTS=["admin@example.com","ops@example.com"] (unquoted)
+#   or one key per address: EMAIL__RECIPIENTS__0=admin@example.com, ...
+# A comma-separated value is NOT a list: it arrives as ONE address.
 # Note: When set, emails will be sent to these addresses unless overridden via --to
 recipients = []
 
@@ -115,8 +119,11 @@ raise_on_invalid_recipient = true
 # Purpose: Whitelist of allowed file extensions for attachments
 # Type: array of strings (e.g., [".pdf", ".txt", ".docx"]) or empty for blacklist mode
 # Default: [] (empty = use blacklist mode with blocked_extensions)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__ALLOWED_EXTENSIONS=.pdf,.txt,.docx
-# .env: EMAIL__ATTACHMENTS__ALLOWED_EXTENSIONS=.pdf,.txt,.docx
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__ALLOWED_EXTENSIONS='[".pdf",".txt",".docx"]'
+# .env: EMAIL__ATTACHMENTS__ALLOWED_EXTENSIONS=[".pdf",".txt",".docx"] (unquoted)
+#   or one key per extension: EMAIL__ATTACHMENTS__ALLOWED_EXTENSIONS__0=.pdf, ...
+# A comma-separated value is NOT a list: it arrives as one string and is refused
+# (the command fails naming the key) rather than read as "not configured".
 # Note: When set, ONLY these extensions are allowed (whitelist mode)
 #
 # Whitelist Mode Examples (recommended for maximum security):
@@ -131,8 +138,11 @@ allowed_extensions = []
 # Purpose: Blacklist of blocked file extensions (ignored when allowed_extensions is set)
 # Type: array of strings
 # Default: [] (uses OS-specific dangerous extensions from btx_lib_mail)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS=.exe,.bat,.cmd
-# .env: EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS=.exe,.bat,.cmd
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS='[".exe",".bat",".cmd"]'
+# .env: EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS=[".exe",".bat",".cmd"] (unquoted)
+#   or one key per extension: EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS__0=.exe, ...
+# A comma-separated value is NOT a list: it arrives as one string and is refused
+# (the command fails naming the key) rather than read as "not configured".
 # Note: Only used when allowed_extensions is empty (blacklist mode)
 #
 # btx_lib_mail Default Blocked Extensions by OS:
@@ -162,8 +172,11 @@ blocked_extensions = []
 # Purpose: Whitelist of directories from which attachments may be read
 # Type: array of strings (absolute paths) or empty for blacklist mode
 # Default: [] (empty = use blacklist mode with blocked_directories)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__ALLOWED_DIRECTORIES=/home/user/attachments,/tmp/exports
-# .env: EMAIL__ATTACHMENTS__ALLOWED_DIRECTORIES=/home/user/attachments,/tmp/exports
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__ALLOWED_DIRECTORIES='["/home/user/attachments","/tmp/exports"]'
+# .env: EMAIL__ATTACHMENTS__ALLOWED_DIRECTORIES=["/home/user/attachments","/tmp/exports"] (unquoted)
+#   or one key per directory: EMAIL__ATTACHMENTS__ALLOWED_DIRECTORIES__0=/home/user/attachments, ...
+# A comma-separated value is NOT a list: it arrives as one string and is refused
+# (the command fails naming the key) rather than read as "not configured".
 # Note: When set, attachments MUST reside under one of these directories
 #
 # Whitelist Mode Examples (recommended for maximum security):
@@ -175,8 +188,11 @@ allowed_directories = []
 # Purpose: Blacklist of directories from which attachments cannot be read
 # Type: array of strings (absolute paths)
 # Default: [] (uses OS-specific sensitive directories from btx_lib_mail)
-# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__BLOCKED_DIRECTORIES=/etc,/root
-# .env: EMAIL__ATTACHMENTS__BLOCKED_DIRECTORIES=/etc,/root
+# Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__BLOCKED_DIRECTORIES='["/etc","/root"]'
+# .env: EMAIL__ATTACHMENTS__BLOCKED_DIRECTORIES=["/etc","/root"] (unquoted)
+#   or one key per directory: EMAIL__ATTACHMENTS__BLOCKED_DIRECTORIES__0=/etc, ...
+# A comma-separated value is NOT a list: it arrives as one string and is refused
+# (the command fails naming the key) rather than read as "not configured".
 # Note: Only used when allowed_directories is empty (blacklist mode)
 #
 # btx_lib_mail Default Blocked Directories by OS:
