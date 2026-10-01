@@ -14,7 +14,6 @@ from btx_lib_mail import validate_email_address, validate_smtp_host
 from btx_lib_mail.lib_mail import ConfMail
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 #: The form an attachment list must take, named by the refusal of any other form.
 _LIST_FORM = 'a list: a TOML array, or in an environment variable a JSON array such as [".pdf", ".txt"]'
 
