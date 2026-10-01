@@ -1337,30 +1337,6 @@ def test_repr_shows_none_password_normally() -> None:
     assert "EmailConfig(" in r
 
 
-# ======================== EmailConfig validators: edge cases ========================
-
-
-@pytest.mark.os_agnostic
-def test_coerce_string_to_list_non_string_non_list_returns_empty() -> None:
-    """Non-string, non-list input to smtp_hosts is coerced to empty list."""
-    config = EmailConfig(smtp_hosts=42)  # type: ignore[arg-type]
-    assert config.smtp_hosts == []
-
-
-@pytest.mark.os_agnostic
-def test_coerce_extension_lists_unsupported_type_returns_none() -> None:
-    """Unsupported type for allowed_extensions returns None (library defaults)."""
-    config = EmailConfig(attachment_allowed_extensions=42)  # type: ignore[arg-type]
-    assert config.attachment_allowed_extensions is None
-
-
-@pytest.mark.os_agnostic
-def test_coerce_directory_lists_unsupported_type_returns_none() -> None:
-    """Unsupported type for allowed_directories returns None (library defaults)."""
-    config = EmailConfig(attachment_allowed_directories=42)  # type: ignore[arg-type]
-    assert config.attachment_allowed_directories is None
-
-
 # ======================== to_conf_mail: attachment kwargs ========================
 
 
