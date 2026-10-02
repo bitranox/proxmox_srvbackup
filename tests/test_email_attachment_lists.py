@@ -144,6 +144,19 @@ def test_a_tuple_of_hosts_or_recipients_is_kept(field: str) -> None:
 
 @pytest.mark.os_agnostic
 @pytest.mark.parametrize("field", ["smtp_hosts", "recipients"])
+@pytest.mark.parametrize("source", ["loader", "model"])
+def test_a_host_or_recipient_list_set_to_none_means_not_configured(field: str, source: str) -> None:
+    """A bare YAML key or an environment ``null`` clears the list instead of aborting the load."""
+    if source == "loader":
+        config = load_email_config_from_dict({"email": {field: None}})
+    else:
+        config = EmailConfig.model_validate({field: None})
+
+    assert getattr(config, field) == []
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("field", ["smtp_hosts", "recipients"])
 def test_a_host_or_recipient_list_of_another_type_is_refused(field: str) -> None:
     with pytest.raises(ValidationError) as caught:
         EmailConfig.model_validate({field: 587})

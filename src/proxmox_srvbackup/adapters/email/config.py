@@ -96,9 +96,11 @@ class EmailConfig(BaseModel):
         """Coerce single strings to single-element lists.
 
         Handles environment variables and .env files that provide single strings
-        instead of TOML arrays. Empty strings become empty lists. Any other value is
-        left for pydantic to read (a tuple) or refuse (a number), never emptied: an
-        emptied list would read as "not configured" instead of as a mistake.
+        instead of TOML arrays. Empty strings become empty lists. A bare YAML key or
+        an environment null (``None``) means the setting is not configured, so it
+        becomes an empty list too. Any other value is left for pydantic to read (a
+        tuple) or refuse (a number), never emptied: an emptied list would read as
+        "not configured" instead of as a mistake.
 
         Examples:
             >>> EmailConfig._coerce_string_to_list("smtp.example.com:587")
@@ -107,7 +109,11 @@ class EmailConfig(BaseModel):
             ['a@example.com', 'b@example.com']
             >>> EmailConfig._coerce_string_to_list("")
             []
+            >>> EmailConfig._coerce_string_to_list(None)
+            []
         """
+        if v is None:
+            return []
         if isinstance(v, str):
             return [v] if v.strip() else []
         return v
