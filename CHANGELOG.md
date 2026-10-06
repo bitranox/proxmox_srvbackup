@@ -31,6 +31,34 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   branch, adding "SMTP delivery failed" / "Failed to send email" to the correct "sending failed".
   The send result is handled in the `try`'s `else`, and `config-deploy` re-raises an `Exit` before
   its catch-all, so a deliberate exit keeps its own code instead of becoming 1.
+- **A broken configuration file no longer disables every command.** The root group loaded the
+  configuration before any subcommand option was parsed and let a load error escape, so a
+  malformed `config.toml` made every command, `--help` and `config-deploy` (the command that
+  replaces the file) fail with exit 1 and empty stdout. The root now records the failure
+  (`adapters/cli/config_load.py`); `backup`, `setup-keys`, `config`, `send-email` and
+  `send-notification` refuse with exit 78 and one line naming it, while
+  `config-generate-examples`, `info`, `hello`, `logdemo` and help still run. `config-deploy` runs
+  too, with the default permissions, and warns which configuration it could not read, so
+  `config-deploy --force` replaces the broken file. An unreadable file (exit 13 before) takes the
+  same path, and so does an `--env-file` that is not UTF-8 (the line names the file).
+  `--traceback` prints the loader's chained traceback before the line. What the command line gets
+  wrong is checked BEFORE loading, so a broken file cannot hide it: a malformed `--set` or an
+  invalid `--profile` name is a usage error (exit 2) for every command, `info` and `hello`
+  included (see Changed). So are two `--set` values that give one key a value and put a key under
+  it (`--set a.b=1 --set a.b.c=2`), which escaped as a `TypeError` (exit 22) in one order and
+  silently dropped the earlier value in the other; give a whole table in one `--set`. Any other
+  exception from the loader is a bug and propagates as one. `config --profile X` reloads with the
+  root's `--env-file` instead of searching for another `.env`.
+
+### Changed
+- **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
+  exits 2.** A broken `config.toml` made every command exit 1 and an unreadable one exit 13;
+  `backup`, `setup-keys`, `config`, `send-email` and `send-notification` now exit 78 (EX_CONFIG)
+  for both, and the other commands run. An invalid `--profile` name such as `../x` exited 22 from
+  every command; it is now a usage error, exit 2, for the root's `--profile`, `config --profile`
+  and `config-deploy --profile` alike (`config-deploy --profile ../x` used to fail inside the
+  deploy). Conflicting `--set` values also exit 2 (was 22). A monitoring script that tells a
+  failed backup run from a broken configuration by exit code has to test for 78.
 
 ### Security
 - An email attachment allow or block list given in a form it cannot be read in is now refused instead of silently ignored. A comma-separated value (`.pdf,.txt` in an environment variable or `.env`) arrives as one string, and the validators turned any value that was not a list into "not configured", so btx_lib_mail's default lists applied in place of the configured ones. A list or tuple is read as its items (an empty one still means not configured), a set is kept as given, an empty value means not configured, and anything else fails validation naming the setting and the accepted form (a JSON array such as `[".pdf", ".txt"]`). `smtp_hosts` and `recipients` no longer turn a tuple or another non-list value into an empty list. The shipped `50-mail.toml` and `.env.example` documented the comma form for all six list settings; they now show the JSON-array and per-index forms.

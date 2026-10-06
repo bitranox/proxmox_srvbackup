@@ -12,6 +12,7 @@ import lib_log_rich.runtime
 import rich_click as click
 from pydantic import ValidationError
 
+from ...config_load import require_config
 from ...constants import CLICK_CONTEXT_SETTINGS
 from ...context import get_cli_context
 from ...typed_click import option
@@ -63,11 +64,12 @@ def cli_send_notification(
         >>> # Real invocation tested in test_cli_email.py
     """
     cli_ctx = get_cli_context(ctx)
+    config = require_config(ctx, cli_ctx)
     resolved_recipients = list(recipients) if recipients else None
     extra = {"command": "send-notification", "recipients": resolved_recipients, "subject": subject}
 
     with lib_log_rich.runtime.bind(job_id="cli-send-notification", extra=extra):
-        email_config = load_and_validate_email_config(cli_ctx.config, cli_ctx.services.load_email_config_from_dict)
+        email_config = load_and_validate_email_config(config, cli_ctx.services.load_email_config_from_dict)
         overrides = filter_sentinels(
             smtp_hosts=smtp_hosts,
             smtp_username=smtp_username,

@@ -50,6 +50,7 @@ Complete (v1.9.0)
   - `constants.py` — Shared constants
   - `exit_codes.py` — POSIX exit codes (ExitCode IntEnum)
   - `context.py` — Click context helpers
+  - `config_load.py` - Loads the configuration for the root group, records a load failure, and refuses (exit 78) the commands that read it
   - `root.py` — Root command group
   - `main.py` — Entry point (accepts services_factory)
   - `commands/backup.py` — backup, setup-keys commands
@@ -90,6 +91,7 @@ Complete (v1.9.0)
 - `tests/test_backup_per_server.py` — Per-server backup type control (_as_bool, _servers_from_config, skip semantics, dry-run)
 - `tests/test_behaviors.py` — Domain function tests (greeting, timestamp, filename builders, summary formatting)
 - `tests/test_cache_effectiveness.py` — LRU cache behavior tests
+- `tests/test_cli_config_errors.py` - A configuration that does not load: which commands refuse (78), which still run, and the usage errors (2) checked before loading
 - `tests/test_cli_config.py` — CLI config command tests (display, JSON format, section filtering, deploy, profile, redaction)
 - `tests/test_cli_core.py` — Core CLI tests (traceback, main entry, help, hello, fail, info)
 - `tests/test_cli_email.py` — Email CLI integration tests (send-email, send-notification, SMTP overrides)
@@ -98,7 +100,7 @@ Complete (v1.9.0)
 - `tests/test_cli_main_exit.py` - Exit codes and stderr through the real `main()` entry point
 - `tests/test_cli_overrides.py` — CLI `--set` override integration tests
 - `tests/test_cli_validation.py` — Profile name validation tests
-- `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, apply_overrides)
+- `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, nest_overrides, apply_overrides)
 - `tests/test_deploy_permissions.py` — Permission option tests
 - `tests/test_display.py` — Config display formatting tests
 - `tests/test_enums.py` — Domain enum tests

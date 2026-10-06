@@ -19,6 +19,7 @@ from proxmox_srvbackup.domain.behaviors import build_summary_report, build_summa
 from proxmox_srvbackup.domain.enums import BackupType
 from proxmox_srvbackup.domain.models import BackupSummary, ServerConfig
 
+from ..config_load import require_config
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
@@ -104,7 +105,7 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
         >>> # Real invocation tested in integration tests
     """
     cli_ctx = get_cli_context(ctx)
-    config = cli_ctx.config
+    config = require_config(ctx, cli_ctx)
     bt = BackupType(backup_type.lower())
 
     extra = {"command": "backup", "type": bt.value, "dry_run": dry_run, "server_filter": server}
@@ -190,7 +191,7 @@ def cli_setup_keys(ctx: click.Context) -> None:
         >>> # Real invocation tested in integration tests
     """
     cli_ctx = get_cli_context(ctx)
-    config = cli_ctx.config
+    config = require_config(ctx, cli_ctx)
 
     extra = {"command": "setup-keys"}
     with lib_log_rich.runtime.bind(job_id="cli-setup-keys", extra=extra):
