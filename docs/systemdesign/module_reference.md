@@ -66,7 +66,7 @@ Complete (v1.9.0)
 - `src/proxmox_srvbackup/adapters/memory/backup.py` — In-memory backup adapter (no-op)
 - `src/proxmox_srvbackup/adapters/memory/config.py` — In-memory config adapters
 - `src/proxmox_srvbackup/adapters/memory/email.py` — In-memory email adapters (spy)
-- `src/proxmox_srvbackup/adapters/memory/logging.py` — In-memory logging (no-op)
+- `src/proxmox_srvbackup/adapters/memory/logging.py` - In-memory logging (a quiet lib_log_rich runtime for tests)
 
 ### Composition Layer
 - `src/proxmox_srvbackup/composition/__init__.py` — Wires adapters to ports (build_production, build_testing)
@@ -104,6 +104,7 @@ Complete (v1.9.0)
 - `tests/test_errors.py` — Domain error type tests
 - `tests/test_logging.py` — Logging configuration model tests
 - `tests/test_mail.py` — Email configuration and sending tests
+- `tests/test_memory_logging.py` - Testing-composition logging runtime and the per-test logging reset
 - `tests/test_metadata.py` — Package metadata tests (PEP 561 marker, pyproject.toml sync)
 - `tests/test_metadata_sync.py` — __init__conf__ constant sync tests
 - `tests/test_module_entry.py` — `python -m` entry tests
