@@ -30,7 +30,7 @@
 #   EMAIL__FROM_ADDRESS=alerts@example.com
 #
 # Precedence (lowest to highest):
-#   defaults → app config → host config → user config → .env file → env vars
+#   defaults -> app config -> host config -> user config -> .env file -> env vars
 #
 # IMPORTANT: Never commit .env files containing secrets to version control
 #

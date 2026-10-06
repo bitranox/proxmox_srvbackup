@@ -74,6 +74,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   named by its nested key), and the refused value is never printed. An invalid option value
   (`--timeout -5`) still exits 22, now in the same one-line form (`Error: Invalid option value:
   ...`).
+- **The documented `.env` and environment syntax for logging tables works.** `.env.example` and
+  `defaultconfig.d/90-logging.toml` showed `LEVEL=style` and `field=regex` pairs for
+  `console_styles` and `scrub_patterns`, and `.env.example` still said lists were
+  comma-separated, but a comma-separated value arrives as ONE string in both layers: a logging
+  table that was refused, or one bogus list entry. They now show a JSON object or array
+  (unquoted in `.env`, shell-quoted in the environment) or one key per entry
+  (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`), and describe how an unquoted value converts.
 
 ### Changed
 - **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
