@@ -215,7 +215,8 @@ def test_send_email_refuses_a_comma_separated_list_and_sends_nothing(
 
     result = cli_runner.invoke(cli_mod.cli, SEND_EMAIL, obj=lambda: services)
 
-    assert result.exit_code != 0, result.output
-    assert isinstance(result.exception, ValidationError), result.exception
-    assert "attachment_blocked_extensions" in str(result.exception)
+    errors = [line for line in result.stderr.splitlines() if line.startswith("Error:")]
+    assert result.exit_code == 78, result.output
+    assert len(errors) == 1, result.stderr
+    assert errors[0].startswith("Error: Invalid configuration: email.attachments.blocked_extensions: "), result.stderr
     assert ctx.spy.sent_emails == []

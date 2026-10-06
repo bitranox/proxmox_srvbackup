@@ -67,6 +67,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   that both `--dir-mode` and `--file-mode` deploy anyway. `--no-permissions` together with
   `--dir-mode` or `--file-mode` is a usage error (exit 2). "Deployed configuration" is logged
   after the deploy, not before it.
+- **An invalid `[email]` section is a configuration error.** `send-email` and `send-notification`
+  let the `ValidationError` escape to `main()`'s catch-all, which exited 22 with pydantic's
+  multi-line report and documentation URL. They now exit 78 with one line per problem,
+  `Error: Invalid configuration: email.<key>: <reason>` (an `[email.attachments]` setting is
+  named by its nested key), and the refused value is never printed. An invalid option value
+  (`--timeout -5`) still exits 22, now in the same one-line form (`Error: Invalid option value:
+  ...`).
 
 ### Changed
 - **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
@@ -88,6 +95,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   `--dir-mode`/`--file-mode` use the library's wording ("unsafe directory mode 0o777: group
   write (0o020); world write (0o002)"), and a zero-padded mode such as `0000750` is accepted as
   `0o750`.
+- **Exit code change: an invalid `[email]` section exits 78, no longer 22** (see Fixed). A script
+  that checks for 22 after `send-email` or `send-notification` must check for 78 (EX_CONFIG); an
+  invalid option value such as `--timeout -5` still exits 22. The log record for a refused
+  option names its problems in a `problems` field instead of the pydantic dump in `error`.
+  `describe_validation_error` in `adapters/email/config.py` is public.
 
 ### Removed
 - `adapters.config.permissions` as a whole: `parse_mode` (whose silent fall-back to the default

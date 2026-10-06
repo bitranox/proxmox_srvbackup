@@ -9,11 +9,13 @@ from __future__ import annotations
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import rich_click as click
+from pydantic import ValidationError
 
 from proxmox_srvbackup import __init__conf__
+from proxmox_srvbackup.adapters.email.config import describe_validation_error
 from proxmox_srvbackup.adapters.email.sender import EmailConfig
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
 
@@ -24,7 +26,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from lib_layered_config import Config
-    from pydantic import ValidationError
 
     from proxmox_srvbackup.application.ports import LoadEmailConfigFromDict
 
@@ -121,9 +122,13 @@ def load_and_validate_email_config(config: Config, loader: LoadEmailConfigFromDi
         EmailConfig with validated SMTP configuration.
 
     Raises:
-        click.exceptions.Exit: When SMTP hosts are not configured (exit code 78 / CONFIG_ERROR).
+        click.exceptions.Exit: When the ``[email]`` section is invalid, one ``Error:`` line per
+            problem, or when SMTP hosts are not configured (exit code 78 / CONFIG_ERROR).
     """
-    email_config = loader(config.as_dict())
+    try:
+        email_config = loader(config.as_dict())
+    except ValidationError as exc:
+        _refuse_email_config(exc, "Invalid configuration", exit_code=ExitCode.CONFIG_ERROR)
 
     if not email_config.smtp_hosts:
         logger.error("No SMTP hosts configured")
@@ -223,8 +228,8 @@ def execute_with_email_error_handling(
         _handle_send_result(result, recipients, message_type)
 
 
-def handle_validation_error(exc: ValidationError) -> None:
-    """Handle Pydantic validation errors from config overrides.
+def handle_validation_error(exc: ValidationError) -> NoReturn:
+    """Refuse an invalid command-line override, one ``Error:`` line per problem.
 
     Args:
         exc: The validation error.
@@ -232,7 +237,29 @@ def handle_validation_error(exc: ValidationError) -> None:
     Raises:
         click.exceptions.Exit: Always raised, with the INVALID_ARGUMENT exit code.
     """
-    _handle_send_error(exc, "Invalid configuration", "Invalid option value", exit_code=ExitCode.INVALID_ARGUMENT)
+    _refuse_email_config(exc, "Invalid option value", exit_code=ExitCode.INVALID_ARGUMENT)
+
+
+def _refuse_email_config(exc: ValidationError, heading: str, *, exit_code: ExitCode) -> NoReturn:
+    """Log and print an EmailConfig validation error as one line per problem, then exit.
+
+    pydantic's own report spans several lines per problem and ends each with a documentation
+    URL; :func:`describe_validation_error` gives ``email.<key>: <reason>`` without the input,
+    which can be the SMTP password.
+
+    Args:
+        exc: The validation error.
+        heading: What was invalid, e.g. "Invalid configuration" for the file.
+        exit_code: The code to exit with.
+
+    Raises:
+        click.exceptions.Exit: Always raised, with ``exit_code``.
+    """
+    problems = describe_validation_error(exc)
+    logger.error(heading, extra={"problems": problems, "error_type": type(exc).__name__})
+    for problem in problems:
+        click.echo(f"Error: {heading}: {problem}", err=True)
+    get_current_context().exit(exit_code)
 
 
 def _handle_send_result(result: bool, recipients: list[str] | None, message_type: str) -> None:

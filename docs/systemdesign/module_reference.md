@@ -93,6 +93,7 @@ Complete (v1.9.0)
 - `tests/test_cli_config_errors.py` - A configuration that does not load: which commands refuse (78), which still run, and the usage errors (2) checked before loading
 - `tests/test_cli_config.py` — CLI config command tests (display, JSON format, section filtering, deploy, profile, redaction)
 - `tests/test_cli_core.py` — Core CLI tests (traceback, main entry, help, hello, fail, info)
+- `tests/test_cli_email_config_errors.py` - An invalid `[email]` section or option value: one `Error:` line per problem
 - `tests/test_cli_email.py` — Email CLI integration tests (send-email, send-notification, SMTP overrides)
 - `tests/test_cli_env_file.py` — CLI `--env-file` option tests (path validation, value override)
 - `tests/test_cli_exit_codes.py` — Exit code integration tests
@@ -274,7 +275,7 @@ Send email using configured SMTP settings.
 | `--use-starttls / --no-use-starttls` | Override STARTTLS |
 | `--timeout SECONDS` | Override timeout |
 
-**Exit codes:** 0, 2 (file not found, or another usage error), 22, 69 (SMTP failure), 78 (no SMTP hosts, or configuration not loadable)
+**Exit codes:** 0, 2 (file not found, or another usage error), 22 (invalid option value), 69 (SMTP failure), 78 (no SMTP hosts, an invalid `[email]` section, or configuration not loadable)
 
 ### send-notification
 
@@ -292,7 +293,7 @@ Send simple plain-text notification email.
 | `--use-starttls / --no-use-starttls` | Override STARTTLS |
 | `--timeout SECONDS` | Override timeout |
 
-**Exit codes:** 0, 2 (usage error), 22, 69 (SMTP failure), 78 (no SMTP hosts, or configuration not loadable)
+**Exit codes:** 0, 2 (usage error), 22 (invalid option value), 69 (SMTP failure), 78 (no SMTP hosts, an invalid `[email]` section, or configuration not loadable)
 
 ### logdemo
 
