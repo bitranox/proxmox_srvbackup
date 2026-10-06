@@ -199,7 +199,10 @@ def _check_profile_name(_ctx: click.Context, _param: click.Parameter, value: str
     "--force",
     is_flag=True,
     default=False,
-    help="Overwrite existing configuration files",
+    help=(
+        "Overwrite existing configuration files; a replaced file whose content differs is kept "
+        "as <name>.bak (then .bak.1, ...), an unchanged one is left alone"
+    ),
 )
 @option(
     "--profile",
@@ -251,7 +254,9 @@ def cli_config_deploy(
     - host: System-wide host config (requires privileges)
     - user: User-specific config (~/.config on Linux)
 
-    By default, existing files are not overwritten. Use --force to overwrite.
+    By default, existing files are not overwritten. Use --force to overwrite: a replaced
+    file whose content differs is kept as <name>.bak (then .bak.1, ...), and an unchanged
+    one is left alone. Nothing loads a .bak file.
 
     \b
     Permission options (POSIX only, no-op on Windows):

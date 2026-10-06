@@ -131,15 +131,15 @@ Deploy bundled default configuration to platform-specific directories.
 
 #### Options Reference
 
-| Option             | Required | Description                                                                              |
-|--------------------|:--------:|------------------------------------------------------------------------------------------|
-| `--target`         | Yes      | Target layer: `app`, `host`, or `user`. Can be specified multiple times.                 |
-| `--force`          | No       | Overwrite existing configuration files. Without this, existing files are skipped.        |
-| `--profile NAME`   | No       | Deploy to a profile-specific subdirectory (e.g., `profile/production/`).                 |
-| `--permissions`    | No       | Set Unix permissions even when the configured `enabled` is false.                        |
-| `--no-permissions` | No       | Disable permission setting; use system umask instead. Not combinable with a mode option. |
-| `--dir-mode MODE`  | No       | Override directory permissions (octal: `750` or `0o750`).                                |
-| `--file-mode MODE` | No       | Override file permissions (octal: `640` or `0o640`).                                     |
+| Option             | Required | Description                                                                                                                                                                                                                        |
+|--------------------|:--------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--target`         | Yes      | Target layer: `app`, `host`, or `user`. Can be specified multiple times.                                                                                                                                                           |
+| `--force`          | No       | Overwrite existing configuration files. Without this, existing files are skipped. A replaced file whose content differs is kept as `<name>.bak` (then `.bak.1`, ...); an unchanged one is left alone. Nothing loads a `.bak` file. |
+| `--profile NAME`   | No       | Deploy to a profile-specific subdirectory (e.g., `profile/production/`).                                                                                                                                                           |
+| `--permissions`    | No       | Set Unix permissions even when the configured `enabled` is false.                                                                                                                                                                  |
+| `--no-permissions` | No       | Disable permission setting; use system umask instead. Not combinable with a mode option.                                                                                                                                           |
+| `--dir-mode MODE`  | No       | Override directory permissions (octal: `750` or `0o750`).                                                                                                                                                                          |
+| `--file-mode MODE` | No       | Override file permissions (octal: `640` or `0o640`).                                                                                                                                                                               |
 
 > **Best practice:** Do not edit the deployed default config files directly. Instead,
 > create a `99-myconfig.toml` in the same directory to override only the settings you

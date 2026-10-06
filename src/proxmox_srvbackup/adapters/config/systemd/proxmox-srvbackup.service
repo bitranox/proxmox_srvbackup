@@ -64,7 +64,11 @@ Type=oneshot
 
 # Preparation steps before every run (all non-fatal via - prefix):
 # 1. Pull the latest version from PyPI
-# 2. Deploy updated default config (99-myconfig.toml is never overwritten)
+# 2. Deploy updated default config (99-myconfig.toml is never overwritten).
+#    A deployed default whose content changed (an upgrade that changed a bundled default)
+#    is kept as <name>.bak, then .bak.1 and so on, next to the new one in
+#    /etc/xdg/proxmox-srvbackup and its config.d. Nothing loads those files; an unchanged
+#    default is left alone, so they only accumulate across upgrades. Remove them at will.
 # 3. Generate/deploy SSH keys for any newly added servers (idempotent)
 ExecStartPre=-/usr/local/bin/uv self update
 ExecStartPre=-/usr/local/bin/uv tool upgrade proxmox_srvbackup

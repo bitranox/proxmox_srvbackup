@@ -130,6 +130,13 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   key such as a password), a JSON array or object parsed, a number that converts back to the same
   text as a number, anything else as text; quote a value to keep it text. So
   `EMAIL__USE_STARTTLS=false` in a `.env` reads as the boolean it says.
+- **`config-deploy --force` says what it keeps.** A replaced file whose content differs is kept as
+  `<name>.bak` (then `.bak.1`, ...), and an unchanged one is left alone; this is
+  lib_layered_config's behaviour since 4.2.0 and unchanged by the 7.0.1 floor, but neither the
+  `--force` help, `CONFIG.md`, the README nor the systemd unit (whose `ExecStartPre` runs
+  `config-deploy --target app --force` before every backup) said so. On a backup server every
+  upgrade that changes a bundled default leaves one more numbered `.bak` in
+  `/etc/xdg/proxmox-srvbackup`; nothing loads them.
 - **`config-deploy` leaves every permission decision to lib_layered_config's `deploy_config`**
   (see Fixed). The deploy port (`DeployConfiguration`) takes `set_permissions: bool | None`
   (None, the default, follows the configured `enabled`) and `permission_overrides`. Refusals of

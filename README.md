@@ -379,9 +379,9 @@ gunzip -c rpool_snapshot_proxmox01_2026-03-23_04-30-00.zfs.gz | zfs recv -F tank
 
 **Flags explained:**
 
-| Flag | Description |
-|------|-------------|
-| `-n` | Dry-run: validates the stream without writing data |
+| Flag | Description                                                               |
+|------|---------------------------------------------------------------------------|
+| `-n` | Dry-run: validates the stream without writing data                        |
 | `-F` | Force: rolls back the target to its most recent snapshot before receiving |
 
 **Important considerations:**
@@ -536,14 +536,14 @@ proxmox-srvbackup --profile production config
 proxmox-srvbackup config-deploy [OPTIONS]
 ```
 
-| Option                             | Required | Description                                         |
-|------------------------------------|:--------:|-----------------------------------------------------|
-| `--target TARGET`                  | Yes      | Target layer: `app`, `host`, or `user` (repeatable) |
-| `--force`                          | No       | Overwrite existing configuration files              |
-| `--profile NAME`                   | No       | Deploy to a profile-specific subdirectory           |
-| `--permissions / --no-permissions` | No       | Enable/disable Unix permission setting              |
-| `--dir-mode MODE`                  | No       | Override directory permissions (octal)              |
-| `--file-mode MODE`                 | No       | Override file permissions (octal)                   |
+| Option                             | Required | Description                                                                                        |
+|------------------------------------|:--------:|----------------------------------------------------------------------------------------------------|
+| `--target TARGET`                  | Yes      | Target layer: `app`, `host`, or `user` (repeatable)                                                |
+| `--force`                          | No       | Overwrite existing configuration files (a changed one is kept as `<name>.bak`, then `.bak.1`, ...) |
+| `--profile NAME`                   | No       | Deploy to a profile-specific subdirectory                                                          |
+| `--permissions / --no-permissions` | No       | Enable/disable Unix permission setting                                                             |
+| `--dir-mode MODE`                  | No       | Override directory permissions (octal)                                                             |
+| `--file-mode MODE`                 | No       | Override file permissions (octal)                                                                  |
 
 **Examples:**
 
