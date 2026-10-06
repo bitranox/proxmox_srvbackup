@@ -100,7 +100,7 @@ Complete (v1.9.0)
 - `tests/test_cli_main_exit.py` - Exit codes and stderr through the real `main()` entry point
 - `tests/test_cli_overrides.py` — CLI `--set` override integration tests
 - `tests/test_cli_validation.py` — Profile name validation tests
-- `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, nest_overrides, apply_overrides)
+- `tests/test_config_overrides.py` - Unit tests for override parsing (parse_override, coerce_value, nest_overrides, apply_overrides)
 - `tests/test_declared_dependencies.py` - Every third-party module imported at run time is in `[project].dependencies`
 - `tests/test_deploy_mode_safety.py` - `--dir-mode`/`--file-mode` refuse malformed, out-of-range and unsafe modes (exit 2)
 - `tests/test_deploy_permissions.py` — Permission option tests
