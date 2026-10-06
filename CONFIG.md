@@ -449,6 +449,12 @@ LOG_CONSOLE_LEVEL=DEBUG proxmox-srvbackup hello
 LOG_ENABLE_GRAYLOG=true LOG_GRAYLOG_ENDPOINT="logs.example.com:12201" proxmox-srvbackup hello
 ```
 
+A value lib_log_rich refuses (`LOG_CONSOLE_LEVEL=bogus`, in the environment or in the `.env`
+logging reads) is a configuration error, like a refused `[lib_log_rich]` value: `backup`,
+`setup-keys`, `config`, `send-email` and `send-notification` exit 78 with lib_log_rich's own
+message (`Error: lib_log_rich: Unknown log level: 'bogus'`), and the other commands run, logging
+with its defaults and without any `LOG_*` variable.
+
 ### Method 2: Application-Prefixed Variables
 
 For any configuration section, use the format: `<PREFIX>___<SECTION>__<KEY>=value`

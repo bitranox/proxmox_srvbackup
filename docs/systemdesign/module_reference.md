@@ -41,7 +41,7 @@ Complete (v1.9.0)
 - `src/proxmox_srvbackup/adapters/email/validation.py` — Email address validation
 
 ### Adapters Layer — Logging
-- `src/proxmox_srvbackup/adapters/logging/setup.py` - lib_log_rich initialization; takes only `LOG_*` from a `.env`, raises `InvalidLoggingConfigError` for a refused `[lib_log_rich]` value
+- `src/proxmox_srvbackup/adapters/logging/setup.py` - lib_log_rich initialization; takes only `LOG_*` from a `.env`, and raises `InvalidLoggingConfigError` for a refused `[lib_log_rich]` value or `LOG_*` variable, after starting logging with its defaults (and without the `LOG_*` variables only when one of them is refused)
 
 ### Adapters Layer — CLI
 - `src/proxmox_srvbackup/adapters/cli/` — CLI adapter package:
@@ -108,7 +108,7 @@ Complete (v1.9.0)
 - `tests/test_email_library_limits.py` - What btx_lib_mail refuses for this tool: recipient and attachment counts, default blocked extensions, SMTP port syntax
 - `tests/test_enums.py` — Domain enum tests
 - `tests/test_errors.py` — Domain error type tests
-- `tests/test_logging_dotenv_isolation.py` - Only `LOG_*` lines of a `.env` reach the environment; an invalid `[lib_log_rich]` value is a configuration failure (78)
+- `tests/test_logging_dotenv_isolation.py` - Only `LOG_*` lines of a `.env` reach the environment; an invalid `[lib_log_rich]` value or `LOG_*` variable is a configuration failure (78) that leaves logging running
 - `tests/test_logging.py` — Logging configuration model tests
 - `tests/test_mail.py` — Email configuration and sending tests
 - `tests/test_memory_logging.py` - Testing-composition logging runtime and the per-test logging reset

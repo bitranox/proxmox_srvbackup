@@ -99,6 +99,18 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   defaults, `backup`, `setup-keys`, `config`, `send-email` and `send-notification` refuse with
   exit 78 and one line per problem (`lib_log_rich.rate_limit: Input should be a valid tuple`),
   never the refused value, and the other commands run.
+- **A refused `LOG_*` variable no longer disables every command.** A value lib_log_rich refuses in
+  a `LOG_*` variable, set in the environment or in the `.env` logging reads
+  (`LOG_CONSOLE_LEVEL=bogus` in the `--env-file`), made every command, `info` and `config-deploy`
+  included, exit 22 with `ValueError: Unknown log level: 'bogus'`. Restarting logging with an
+  empty configuration does not help, because lib_log_rich reads the `LOG_*` variables on every
+  start and refuses the same variable again. Logging now falls back to its defaults with every
+  `LOG_*` variable hidden for that start (and put back afterwards), so only `backup`,
+  `setup-keys`, `config`, `send-email` and `send-notification` exit 78, and the others run with
+  exit 0. The 78 carries lib_log_rich's own message, `Error: lib_log_rich: Unknown log
+  level: 'bogus'`, which may name neither the variable nor where it was set. A refused
+  `[lib_log_rich]` value still leaves every valid `LOG_*` variable in force for the fallback:
+  only a refused variable hides them.
 
 ### Changed
 - **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
@@ -129,7 +141,8 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   `commands/config.py`) but only had it through rich-click. A new test fails when a runtime
   import is missing from `[project].dependencies`.
 - **Exit code change: an invalid `[lib_log_rich]` value exits 78 from the commands that read the
-  configuration, and no longer stops the others** (was 22 from every command; see Fixed).
+  configuration, and no longer stops the others** (was 22 from every command; see Fixed). So does
+  a refused `LOG_*` variable (was 22 from every command too).
   **Requires python-dotenv** (already installed through lib_log_rich): the logging setup reads the
   `LOG_*` lines of a `.env` itself. **`InitLogging` takes `dotenv_path`**: the port is
   `init_logging(config, *, dotenv_path=None)`. `InvalidLoggingConfigError` (a
