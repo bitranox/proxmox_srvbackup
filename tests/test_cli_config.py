@@ -10,7 +10,7 @@ from proxmox_srvbackup.adapters import cli as cli_mod
 from proxmox_srvbackup.adapters.config import loader as config_mod
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from click.testing import CliRunner, Result
@@ -209,9 +209,10 @@ def test_when_config_deploy_is_invoked_it_deploys_configuration(
         targets: Any,
         force: bool = False,
         profile: str | None = None,
-        set_permissions: bool = True,
+        set_permissions: bool | None = None,
         dir_mode: int | None = None,
         file_mode: int | None = None,
+        permission_overrides: Mapping[str, object] | None = None,
     ) -> list[Path]:
         return [deployed_path]
 
@@ -236,9 +237,10 @@ def test_when_config_deploy_finds_no_files_to_create_it_informs_user(
         targets: Any,
         force: bool = False,
         profile: str | None = None,
-        set_permissions: bool = True,
+        set_permissions: bool | None = None,
         dir_mode: int | None = None,
         file_mode: int | None = None,
+        permission_overrides: Mapping[str, object] | None = None,
     ) -> list[Path]:
         return []
 
@@ -263,9 +265,10 @@ def test_when_config_deploy_encounters_permission_error_it_handles_gracefully(
         targets: Any,
         force: bool = False,
         profile: str | None = None,
-        set_permissions: bool = True,
+        set_permissions: bool | None = None,
         dir_mode: int | None = None,
         file_mode: int | None = None,
+        permission_overrides: Mapping[str, object] | None = None,
     ) -> list[Any]:
         raise PermissionError("Permission denied")
 
@@ -297,9 +300,10 @@ def test_when_config_deploy_supports_multiple_targets(
         targets: Any,
         force: bool = False,
         profile: str | None = None,
-        set_permissions: bool = True,
+        set_permissions: bool | None = None,
         dir_mode: int | None = None,
         file_mode: int | None = None,
+        permission_overrides: Mapping[str, object] | None = None,
     ) -> list[Path]:
         target_values = [t.value if isinstance(t, DeployTarget) else t for t in targets]
         assert len(target_values) == 2

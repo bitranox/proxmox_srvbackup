@@ -33,7 +33,6 @@ Complete (v1.9.0)
 - `src/proxmox_srvbackup/adapters/config/deploy.py` — Configuration deployment
 - `src/proxmox_srvbackup/adapters/config/display.py` — Configuration display (TOML/JSON output, redaction)
 - `src/proxmox_srvbackup/adapters/config/overrides.py` — CLI `--set` override parsing and deep-merge
-- `src/proxmox_srvbackup/adapters/config/permissions.py` — File permission handling for deploy targets
 
 ### Adapters Layer — Email
 - `src/proxmox_srvbackup/adapters/email/config.py` — EmailConfig Pydantic model and loader
@@ -101,6 +100,7 @@ Complete (v1.9.0)
 - `tests/test_cli_overrides.py` — CLI `--set` override integration tests
 - `tests/test_cli_validation.py` — Profile name validation tests
 - `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, nest_overrides, apply_overrides)
+- `tests/test_deploy_mode_safety.py` - `--dir-mode`/`--file-mode` refuse malformed, out-of-range and unsafe modes (exit 2)
 - `tests/test_deploy_permissions.py` — Permission option tests
 - `tests/test_display.py` — Config display formatting tests
 - `tests/test_enums.py` — Domain enum tests
@@ -111,6 +111,7 @@ Complete (v1.9.0)
 - `tests/test_metadata.py` — Package metadata tests (PEP 561 marker, pyproject.toml sync)
 - `tests/test_metadata_sync.py` — __init__conf__ constant sync tests
 - `tests/test_module_entry.py` — `python -m` entry tests
+- `tests/test_permission_defaults.py` - `config-deploy` hands permissions to lib_layered_config: `--set` overrides, `.env` and deployed destinations never decide a mode, refusals exit 78
 - `tests/test_packages_backup.py` — Package list backup adapter tests (filename, dpkg output, retention, dry-run, local/remote)
 - `tests/test_ports.py` — Protocol conformance tests
 - `tests/test_property_email.py` — Property-based email validation tests (hypothesis)
@@ -242,7 +243,7 @@ Deploy default configuration to system or user directories.
 | `--dir-mode MODE` | Override directory permissions (octal) |
 | `--file-mode MODE` | Override file permissions (octal) |
 
-**Exit codes:** 0, 1, 2 (usage error, including an invalid `--profile` name), 13 (permission denied)
+**Exit codes:** 0, 1, 2 (usage error, including a refused `--dir-mode`/`--file-mode` or `--profile` name, and `--no-permissions` together with a mode), 13 (permission denied), 78 (lib_layered_config refused the permission settings: a configured one, which both `--dir-mode` and `--file-mode` or `--no-permissions` deploy past, or a `--set` of `lib_layered_config.default_permissions`)
 
 ### config-generate-examples
 

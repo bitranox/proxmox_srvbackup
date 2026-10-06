@@ -49,6 +49,24 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   silently dropped the earlier value in the other; give a whole table in one `--set`. Any other
   exception from the loader is a bug and propagates as one. `config --profile X` reloads with the
   root's `--env-file` instead of searching for another `.env`.
+- **`[lib_layered_config.default_permissions]` now takes effect, and only the configuration
+  files decide it.** The per-layer modes were read, but only `enabled` was ever used, so
+  `--set lib_layered_config.default_permissions.user_directory='"0o750"'` still produced a `0o700`
+  directory, and a malformed mode fell back to the default silently. `config-deploy` now hands its
+  options and any `--set` of the section to lib_layered_config, which deploys each target with its
+  configured directory and file mode (`--dir-mode`/`--file-mode` still win) and reads the section
+  itself: from the bundled defaults, the configuration files the deploy does not overwrite and the
+  environment, never from `.env` (nor `--env-file`). So a `.env` in the working directory can
+  neither change a deployed mode nor block a deploy, and `config-deploy --force` replaces a
+  deployed file that does not parse or holds a bad value without further options (the warning
+  about a configuration that did not load is gone: the deploy no longer reads it). A malformed or
+  out-of-range mode, a bare integer (TOML `user_file = 400` is decimal 400, i.e. `0o620`), an
+  unsafe mode, a non-boolean `enabled`, a section that is not a table or an unknown key stops the
+  command with exit 78 before anything is written: one `Error:` line per problem naming the key
+  and where it was set (`(source: override)` for a `--set`), then, for a configured value, a hint
+  that both `--dir-mode` and `--file-mode` deploy anyway. `--no-permissions` together with
+  `--dir-mode` or `--file-mode` is a usage error (exit 2). "Deployed configuration" is logged
+  after the deploy, not before it.
 
 ### Changed
 - **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
@@ -64,9 +82,31 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   key such as a password), a JSON array or object parsed, a number that converts back to the same
   text as a number, anything else as text; quote a value to keep it text. So
   `EMAIL__USE_STARTTLS=false` in a `.env` reads as the boolean it says.
+- **`config-deploy` leaves every permission decision to lib_layered_config's `deploy_config`**
+  (see Fixed). The deploy port (`DeployConfiguration`) takes `set_permissions: bool | None`
+  (None, the default, follows the configured `enabled`) and `permission_overrides`. Refusals of
+  `--dir-mode`/`--file-mode` use the library's wording ("unsafe directory mode 0o777: group
+  write (0o020); world write (0o002)"), and a zero-padded mode such as `0000750` is accepted as
+  `0o750`.
+
+### Removed
+- `adapters.config.permissions` as a whole: `parse_mode` (whose silent fall-back to the default
+  was the bug), `get_permission_defaults`, `get_modes_for_target` and the `PermissionDefaults`
+  model. lib_layered_config reads and validates the section now; a caller that wants the
+  settings uses its `deploy_permissions_from_config`.
 
 ### Security
 - An email attachment allow or block list given in a form it cannot be read in is now refused instead of silently ignored. A comma-separated value (`.pdf,.txt` in an environment variable or `.env`) arrives as one string, and the validators turned any value that was not a list into "not configured", so btx_lib_mail's default lists applied in place of the configured ones. A list or tuple is read as its items (an empty one still means not configured), a set is kept as given, an empty value means not configured, and anything else fails validation naming the setting and the accepted form (a JSON array such as `[".pdf", ".txt"]`). `smtp_hosts` and `recipients` no longer turn a tuple or another non-list value into an empty list. The shipped `50-mail.toml` and `.env.example` documented the comma form for all six list settings; they now show the JSON-array and per-index forms.
+- **`config-deploy` refuses unsafe and malformed modes (exit code change: 2, nothing written).**
+  `--dir-mode -1` chmodded the config directory to `0o7777` (setuid, sticky, world-writable), a
+  20-digit value raised `OverflowError`, and `--dir-mode 777` or `--file-mode 666` deployed
+  world-writable configuration, including the file that holds the SMTP password. `--dir-mode`/`--file-mode` and every configured mode now accept
+  only a plain octal literal in `0`..`0o7777`, and refuse the setuid/setgid/sticky bits, group
+  and world write (on macOS every local account shares the group `staff`), an execute bit on a
+  file, a directory without owner `rwx` and a file without owner `rw`, naming each offending bit.
+  A configured mode given as a bare integer is refused instead of being read as DECIMAL.
+  Migration: quote configured modes (`user_file = "640"`), and use the `0o` prefix in environment
+  variables and `--set`; `--dir-mode 770` and `--file-mode 660` are refused.
 
 ## [1.9.5] 2026-07-24
 

@@ -49,9 +49,10 @@ class DeployConfiguration(Protocol):
         targets: Sequence[DeployTarget],
         force: bool = ...,
         profile: str | None = ...,
-        set_permissions: bool = ...,
+        set_permissions: bool | None = ...,
         dir_mode: int | None = ...,
         file_mode: int | None = ...,
+        permission_overrides: Mapping[str, object] | None = ...,
     ) -> list[Path]: ...
 
 
