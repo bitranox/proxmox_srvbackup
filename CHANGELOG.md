@@ -10,6 +10,16 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - **`email.smtp_hosts` and `email.recipients` set to nothing mean not configured.** A bare YAML
   key or an environment `null` was refused as "Input should be a valid list" for both settings.
   Both now read `None` as an empty list.
+- **`build_testing()` can run a command, and tests no longer pass or fail by order.** The
+  in-memory logging initializer was a no-op while every command binds job context onto the
+  lib_log_rich runtime, so any command under the testing composition raised
+  `RuntimeError('lib_log_rich.init() must be called before using the logging API')`. It now
+  starts a quiet runtime (no journald, event log, Graylog or queue; console at ERROR; no `.env`
+  loading). An autouse fixture shuts the runtime down and restores the root logger after every
+  test, the conftest fixtures that build services use the quiet runtime instead of the production
+  one (whose queued INFO lines raced into CliRunner's stderr), and CLI output is rendered
+  uncoloured at a fixed 120 columns, so CI (`GITHUB_ACTIONS`, 79-column Windows runners) and a
+  developer machine see the same text.
 
 ### Security
 - An email attachment allow or block list given in a form it cannot be read in is now refused instead of silently ignored. A comma-separated value (`.pdf,.txt` in an environment variable or `.env`) arrives as one string, and the validators turned any value that was not a list into "not configured", so btx_lib_mail's default lists applied in place of the configured ones. A list or tuple is read as its items (an empty one still means not configured), a set is kept as given, an empty value means not configured, and anything else fails validation naming the setting and the accepted form (a JSON array such as `[".pdf", ".txt"]`). `smtp_hosts` and `recipients` no longer turn a tuple or another non-list value into an empty list. The shipped `50-mail.toml` and `.env.example` documented the comma form for all six list settings; they now show the JSON-array and per-index forms.
