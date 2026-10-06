@@ -170,10 +170,14 @@ def send_email(
 
     Raises:
         ValueError: No from_address configured and no override provided,
-            or no recipients configured and no override provided.
+            or no recipients configured and no override provided, or more than
+            btx_lib_mail's 1000 recipients or 100 attachments for one send
+            (refused before any delivery).
         ConfigurationError: No SMTP hosts configured.
         FileNotFoundError: Required attachment missing and config.raise_on_missing_attachments
             is True.
+        AttachmentSecurityError: An attachment breaks the attachment security settings and
+            config.attachment_raise_on_security_violation is True.
         DeliveryError: All SMTP hosts failed for a recipient.
 
     Side Effects:

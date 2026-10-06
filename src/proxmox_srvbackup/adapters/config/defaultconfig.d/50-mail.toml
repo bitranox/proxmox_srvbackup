@@ -137,7 +137,9 @@ allowed_extensions = []
 
 # Purpose: Blacklist of blocked file extensions (ignored when allowed_extensions is set)
 # Type: array of strings
-# Default: [] (uses OS-specific dangerous extensions from btx_lib_mail)
+# Default: [] (uses btx_lib_mail's dangerous extensions: its POSIX list and its Windows list
+#   together, on every platform, because the recipient's system decides what an attachment
+#   runs as, not the sender's)
 # Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS='[".exe",".bat",".cmd"]'
 # .env: EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS=[".exe",".bat",".cmd"] (unquoted)
 #   or one key per extension: EMAIL__ATTACHMENTS__BLOCKED_EXTENSIONS__0=.exe, ...
@@ -145,27 +147,24 @@ allowed_extensions = []
 # (the command fails naming the key) rather than read as "not configured".
 # Note: Only used when allowed_extensions is empty (blacklist mode)
 #
-# btx_lib_mail Default Blocked Extensions by OS:
+# btx_lib_mail default blocked extensions (both lists apply on Linux, macOS and Windows):
 #
-#   Windows (executable/script dangers):
-#     Executables:  .exe, .com, .scr, .pif, .msi, .msp
-#     Scripts:      .bat, .cmd, .ps1, .psm1, .psd1, .vbs, .vbe, .js, .jse, .ws, .wsf, .wsh
+#   POSIX (DANGEROUS_EXTENSIONS_POSIX):
+#     Shell:        .sh, .bash, .zsh, .csh, .ksh
+#     Binaries:     .bin, .run, .elf, .out, .so, .dylib, .appimage, .deb, .rpm, .apk
+#     Interpreted:  .py, .pyc, .pyo, .pyw, .pl, .pm, .rb, .php, .js, .mjs, .cjs
+#     Java:         .jar, .war, .ear
+#
+#   Windows (DANGEROUS_EXTENSIONS_WINDOWS):
+#     Executables:  .exe, .com, .scr, .pif, .msi, .msp, .application, .gadget, .msc
+#     Scripts:      .bat, .cmd, .ps1, .ps2, .psc1, .psc2, .vbs, .vbe, .js, .jse,
+#                   .ws, .wsc, .wsf, .wsh
 #     Libraries:    .dll, .ocx, .sys, .drv, .cpl
 #     Shortcuts:    .lnk, .url, .scf
-#     Office Macro: .docm, .xlsm, .pptm, .dotm, .xltm, .potm
 #     Registry:     .reg
-#     Installers:   .cab, .inf
-#     HTML Apps:    .hta, .chm
-#
-#   macOS (application/installer dangers):
-#     Applications: .app, .pkg, .dmg, .kext
-#     Scripts:      .command, .tool, .workflow, .action
-#
-#   Linux/POSIX (script dangers):
-#     Scripts:      .sh, .bash, .zsh, .fish, .csh, .ksh
-#     Binaries:     .bin, .run, .AppImage, .deb, .rpm
-#     Python:       .py, .pyc, .pyo, .pyw
-#     Other:        .pl, .rb, .so, .ko
+#     Installers:   .inf
+#     HTML Apps:    .hta
+#     Java:         .jar, .war, .ear
 #
 blocked_extensions = []
 

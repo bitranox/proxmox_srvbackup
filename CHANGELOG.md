@@ -134,6 +134,16 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   `LOG_*` lines of a `.env` itself. **`InitLogging` takes `dotenv_path`**: the port is
   `init_logging(config, *, dotenv_path=None)`. `InvalidLoggingConfigError` (a
   `ConfigurationError`) is what the logging setup raises for a refused setting.
+- **Requires btx_lib_mail 4.0.0.** What a user of `send-email`, `send-notification` and the
+  backup summary mail can see: the Windows dangerous extensions (`.exe`, `.bat`, `.ps1`, `.dll`,
+  ...) are refused as attachments on Linux and macOS too, and the POSIX ones (`.sh`, `.py`, ...)
+  on Windows, when `blocked_extensions` is not configured (exit 1, `Error: Unexpected error -
+  Attachment security violation (extension): ...`, as for every refused attachment); one send
+  with more than 1000 recipients or 100 attachments is refused before anything is delivered
+  (exit 2, `Error: Invalid email parameters - ...`); an SMTP port that is not plain digits
+  (`smtp.example.com:+25`) is a configuration error (exit 78); a sender or recipient longer
+  than RFC 5321 allows, and a subject with a control character or over 4096 characters, are
+  refused (exit 2). The shipped `50-mail.toml` lists the extensions the library actually blocks.
 
 ### Removed
 - `adapters.config.permissions` as a whole: `parse_mode` (whose silent fall-back to the default

@@ -105,6 +105,7 @@ Complete (v1.9.0)
 - `tests/test_deploy_mode_safety.py` - `--dir-mode`/`--file-mode` refuse malformed, out-of-range and unsafe modes (exit 2)
 - `tests/test_deploy_permissions.py` — Permission option tests
 - `tests/test_display.py` — Config display formatting tests
+- `tests/test_email_library_limits.py` - What btx_lib_mail refuses for this tool: recipient and attachment counts, default blocked extensions, SMTP port syntax
 - `tests/test_enums.py` — Domain enum tests
 - `tests/test_errors.py` — Domain error type tests
 - `tests/test_logging_dotenv_isolation.py` - Only `LOG_*` lines of a `.env` reach the environment; an invalid `[lib_log_rich]` value is a configuration failure (78)
@@ -376,7 +377,10 @@ The `EmailConfig` Pydantic model (`adapters/email/config.py`) provides validated
 | `attachment_raise_on_security_violation` | `bool` | `True` | Raise or skip on security violation |
 
 **Notes:**
-- `None` values use `btx_lib_mail`'s OS-specific defaults (blocked extensions/directories)
+- `None` values use `btx_lib_mail`'s defaults: the blocked extensions are its POSIX and Windows
+  lists together on every platform, the blocked directories are per platform
+- `btx_lib_mail` also refuses one send with more than 1000 recipients or 100 attachments, before
+  anything is delivered
 - Empty arrays `[]` in TOML configuration are coerced to `None`
 - `max_size_bytes = 0` is coerced to `None` (disable size checking)
 - String paths are converted to `Path` objects during validation
