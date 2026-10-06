@@ -192,13 +192,13 @@ Pull backups from all configured Proxmox servers.
 | `--type [all\|config\|zfs]` | Backup type filter (default: all) |
 | `--dry-run` | Show what would be executed without running backups |
 
-**Exit codes:** 0, 1
+**Exit codes:** 0, 1, 2 (usage error, including an invalid `--profile` name or conflicting `--set`), 22 (server not found), 78 (configuration not loadable)
 
 ### setup-keys
 
 Generate per-server ed25519 keypairs and deploy public keys to remote servers.
 
-**Exit codes:** 0, 1
+**Exit codes:** 0, 1, 2 (usage error), 78 (configuration not loadable)
 
 ### info
 
@@ -227,7 +227,7 @@ Display merged configuration from all sources.
 | `--format [human\|json]` | Output format (default: human) |
 | `--section NAME` | Show only specific section |
 
-**Exit codes:** 0, 22 (section not found)
+**Exit codes:** 0, 2 (usage error, including an invalid `--profile` name), 22 (section not found), 78 (configuration not loadable)
 
 ### config-deploy
 
@@ -242,7 +242,7 @@ Deploy default configuration to system or user directories.
 | `--dir-mode MODE` | Override directory permissions (octal) |
 | `--file-mode MODE` | Override file permissions (octal) |
 
-**Exit codes:** 0, 1, 13 (permission denied)
+**Exit codes:** 0, 1, 2 (usage error, including an invalid `--profile` name), 13 (permission denied)
 
 ### config-generate-examples
 
@@ -273,7 +273,7 @@ Send email using configured SMTP settings.
 | `--use-starttls / --no-use-starttls` | Override STARTTLS |
 | `--timeout SECONDS` | Override timeout |
 
-**Exit codes:** 0, 2 (file not found), 22, 69 (SMTP failure), 78 (no SMTP hosts)
+**Exit codes:** 0, 2 (file not found, or another usage error), 22, 69 (SMTP failure), 78 (no SMTP hosts, or configuration not loadable)
 
 ### send-notification
 
@@ -291,7 +291,7 @@ Send simple plain-text notification email.
 | `--use-starttls / --no-use-starttls` | Override STARTTLS |
 | `--timeout SECONDS` | Override timeout |
 
-**Exit codes:** 0, 22, 69 (SMTP failure), 78 (no SMTP hosts)
+**Exit codes:** 0, 2 (usage error), 22, 69 (SMTP failure), 78 (no SMTP hosts, or configuration not loadable)
 
 ### logdemo
 
