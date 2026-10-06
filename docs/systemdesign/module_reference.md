@@ -95,6 +95,7 @@ Complete (v1.9.0)
 - `tests/test_cli_email.py` — Email CLI integration tests (send-email, send-notification, SMTP overrides)
 - `tests/test_cli_env_file.py` — CLI `--env-file` option tests (path validation, value override)
 - `tests/test_cli_exit_codes.py` — Exit code integration tests
+- `tests/test_cli_main_exit.py` - Exit codes and stderr through the real `main()` entry point
 - `tests/test_cli_overrides.py` — CLI `--set` override integration tests
 - `tests/test_cli_validation.py` — Profile name validation tests
 - `tests/test_config_overrides.py` — Unit tests for override parsing (parse_override, coerce_value, apply_overrides)

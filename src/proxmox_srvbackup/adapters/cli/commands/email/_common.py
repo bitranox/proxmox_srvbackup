@@ -18,7 +18,7 @@ from proxmox_srvbackup.adapters.email.sender import EmailConfig
 from proxmox_srvbackup.domain.errors import ConfigurationError, DeliveryError
 
 from ...exit_codes import ExitCode
-from ...typed_click import option
+from ...typed_click import get_current_context, option
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -121,7 +121,7 @@ def load_and_validate_email_config(config: Config, loader: LoadEmailConfigFromDi
         EmailConfig with validated SMTP configuration.
 
     Raises:
-        SystemExit: When SMTP hosts are not configured (exit code 78 / CONFIG_ERROR).
+        click.exceptions.Exit: When SMTP hosts are not configured (exit code 78 / CONFIG_ERROR).
     """
     email_config = loader(config.as_dict())
 
@@ -131,7 +131,7 @@ def load_and_validate_email_config(config: Config, loader: LoadEmailConfigFromDi
             "\nError: No SMTP hosts configured. Please configure email.smtp_hosts in your config file.", err=True
         )
         click.echo(f"See: {__init__conf__.shell_command} config-deploy --target user", err=True)
-        raise SystemExit(ExitCode.CONFIG_ERROR)
+        get_current_context().exit(ExitCode.CONFIG_ERROR)
 
     return email_config
 
@@ -153,7 +153,7 @@ def execute_with_email_error_handling(
             (needed for send-email with attachments).
 
     Raises:
-        SystemExit: On any error (unless DEVELOPMENT_MODE is set).
+        click.exceptions.Exit: On any error (unless DEVELOPMENT_MODE is set).
         Exception: Re-raised in development mode for debugging.
 
     Exception Priority Order:
@@ -175,7 +175,6 @@ def execute_with_email_error_handling(
     """
     try:
         result = operation()
-        _handle_send_result(result, recipients, message_type)
     except ConfigurationError as exc:
         _handle_send_error(
             exc,
@@ -217,6 +216,11 @@ def execute_with_email_error_handling(
             exit_code=ExitCode.GENERAL_ERROR,
             log_traceback=True,
         )
+    else:
+        # Outside the try on purpose: a failed send exits through click's Exit, which is a
+        # RuntimeError, so inside the try the DeliveryError/RuntimeError branch would catch it
+        # and report the same failure a second time as "SMTP delivery failed".
+        _handle_send_result(result, recipients, message_type)
 
 
 def handle_validation_error(exc: ValidationError) -> None:
@@ -226,7 +230,7 @@ def handle_validation_error(exc: ValidationError) -> None:
         exc: The validation error.
 
     Raises:
-        SystemExit: Always raises with INVALID_ARGUMENT exit code.
+        click.exceptions.Exit: Always raised, with the INVALID_ARGUMENT exit code.
     """
     _handle_send_error(exc, "Invalid configuration", "Invalid option value", exit_code=ExitCode.INVALID_ARGUMENT)
 
@@ -240,14 +244,14 @@ def _handle_send_result(result: bool, recipients: list[str] | None, message_type
         message_type: "Email" or "Notification" for display.
 
     Raises:
-        SystemExit: If send failed.
+        click.exceptions.Exit: If the send failed.
     """
     if result:
         click.echo(f"\n{message_type} sent successfully!")
         logger.info("%s sent via CLI", message_type, extra={"recipients": recipients})
     else:
         click.echo(f"\n{message_type} sending failed.", err=True)
-        raise SystemExit(ExitCode.SMTP_FAILURE)
+        get_current_context().exit(ExitCode.SMTP_FAILURE)
 
 
 def _handle_send_error(
@@ -268,7 +272,9 @@ def _handle_send_error(
         log_traceback: Whether to include traceback in logs.
 
     Raises:
-        SystemExit: Always raises with the given exit code.
+        click.exceptions.Exit: Always raised, with the given exit code. Commands exit through
+            click's context, never a bare ``SystemExit``, which ``main()`` would print as
+            ``SystemExit: N``.
     """
     logger.error(
         log_message,
@@ -276,7 +282,7 @@ def _handle_send_error(
         exc_info=log_traceback,
     )
     click.echo(f"\nError: {user_message} - {exc}", err=True)
-    raise SystemExit(exit_code)
+    get_current_context().exit(exit_code)
 
 
 __all__ = [

@@ -113,13 +113,13 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
 
         if not servers:
             click.echo("No servers configured in [backup.servers] section.", err=True)
-            raise SystemExit(ExitCode.GENERAL_ERROR)
+            ctx.exit(ExitCode.GENERAL_ERROR)
 
         if server:
             servers = [s for s in servers if s.name == server]
             if not servers:
                 click.echo(f"Server '{server}' not found in configuration.", err=True)
-                raise SystemExit(ExitCode.INVALID_ARGUMENT)
+                ctx.exit(ExitCode.INVALID_ARGUMENT)
 
         logger.info(
             "Starting backup: %d server(s), type=%s, dry_run=%s",
@@ -158,7 +158,7 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
             _send_summary_email(cli_ctx, summary, report)
 
         if not summary.all_ok:
-            raise SystemExit(ExitCode.GENERAL_ERROR)
+            ctx.exit(ExitCode.GENERAL_ERROR)
 
 
 def _send_summary_email(cli_ctx: CLIContext, summary: BackupSummary, report: str) -> None:
@@ -199,7 +199,7 @@ def cli_setup_keys(ctx: click.Context) -> None:
 
         if not settings.bootstrap_key:
             click.echo("No bootstrap_key configured in [backup] section.", err=True)
-            raise SystemExit(ExitCode.GENERAL_ERROR)
+            ctx.exit(ExitCode.GENERAL_ERROR)
 
         click.echo(f"Setting up SSH keys for {len(servers)} server(s)...")
         click.echo(f"  Key directory: {settings.ssh_key_dir}")
@@ -226,7 +226,7 @@ def cli_setup_keys(ctx: click.Context) -> None:
 
         if not all_ok:
             click.echo("\nSome key deployments failed. Check the log for details.", err=True)
-            raise SystemExit(ExitCode.GENERAL_ERROR)
+            ctx.exit(ExitCode.GENERAL_ERROR)
 
         click.echo("\nAll keys deployed successfully.")
 

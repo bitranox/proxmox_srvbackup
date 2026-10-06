@@ -212,6 +212,8 @@ def test_when_send_email_smtp_fails_it_reports_error(
 
     assert result.exit_code == 69
     assert "failed" in result.output.lower()
+    assert "SMTP delivery failed" not in result.stderr
+    assert "Failed to send email" not in result.stderr
 
 
 @pytest.mark.os_agnostic
@@ -337,6 +339,8 @@ def test_when_send_notification_smtp_fails_it_reports_error(
 
     assert result.exit_code == 69
     assert "failed" in result.output.lower()
+    assert "SMTP delivery failed" not in result.stderr
+    assert "Failed to send email" not in result.stderr
 
 
 # ======================== SMTP Config Override Tests ========================
