@@ -107,6 +107,9 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   invalid option value such as `--timeout -5` still exits 22. The log record for a refused
   option names its problems in a `problems` field instead of the pydantic dump in `error`.
   `describe_validation_error` in `adapters/email/config.py` is public.
+- **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`,
+  `commands/config.py`) but only had it through rich-click. A new test fails when a runtime
+  import is missing from `[project].dependencies`.
 
 ### Removed
 - `adapters.config.permissions` as a whole: `parse_mode` (whose silent fall-back to the default
