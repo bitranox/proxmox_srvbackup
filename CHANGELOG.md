@@ -80,6 +80,16 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   table that was refused, or one bogus list entry. They now show a JSON object or array
   (unquoted in `.env`, shell-quoted in the environment) or one key per entry
   (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`), and describe how an unquoted value converts.
+- **The documented `graylog_endpoint` and `rate_limit` examples work.** `.env.example` and
+  `defaultconfig.d/90-logging.toml` gave both as strings (`graylog.example.com:12201`,
+  `100:60`), which lib_log_rich refuses for the `[lib_log_rich]` section, so a copied line made
+  `backup`, `setup-keys`, `config` and the email commands exit 78
+  (`Error: lib_log_rich.rate_limit: Input should be a valid tuple`; 22 in 1.9.5). They now show
+  the JSON array (`["graylog.example.com",12201]`, `[100,60]`, unquoted in `.env`,
+  shell-quoted in the environment). The native `LOG_GRAYLOG_ENDPOINT` and `LOG_RATE_LIMIT`
+  variables keep their `host:port` and `MAX:WINDOW_SECONDS` form. A new test loads every
+  `[lib_log_rich]` example of both files through the configuration loader and requires
+  lib_log_rich to accept it.
 - **A `.env` reaches logging and nothing else.** The logging setup called lib_log_rich's
   `enable_dotenv()`, which copied every line of the nearest `.env` into the process environment,
   so a later configuration load (`config --profile`, the deploy's permission read) took an

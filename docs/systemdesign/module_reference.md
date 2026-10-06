@@ -108,6 +108,7 @@ Complete (v1.9.0)
 - `tests/test_email_library_limits.py` - What btx_lib_mail refuses for this tool: recipient and attachment counts, default blocked extensions, SMTP port syntax
 - `tests/test_enums.py` — Domain enum tests
 - `tests/test_errors.py` — Domain error type tests
+- `tests/test_logging_documented_examples.py` - Every `[lib_log_rich]` environment and `.env` example in `90-logging.toml` and `.env.example` is a value logging accepts
 - `tests/test_logging_dotenv_isolation.py` - Only `LOG_*` lines of a `.env` reach the environment; an invalid `[lib_log_rich]` value or `LOG_*` variable is a configuration failure (78) that leaves logging running
 - `tests/test_logging.py` — Logging configuration model tests
 - `tests/test_mail.py` — Email configuration and sending tests
