@@ -11,6 +11,7 @@ reset within one test instead of relying on test order.
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -69,6 +70,30 @@ def test_the_reset_restores_the_root_logger_a_production_init_changed(
     isolated_logging_state()
 
     assert (list(root.handlers), root.level, root.propagate) == before
+
+
+@pytest.mark.os_agnostic
+def test_a_refused_log_variable_in_the_shell_does_not_break_build_testing(
+    cli_runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """lib_log_rich reads the ``LOG_*`` variables on every init, so a developer's own
+    ``LOG_CONSOLE_LEVEL=bogus`` would refuse the test runtime and fail every command."""
+    monkeypatch.setenv("LOG_CONSOLE_LEVEL", "bogus")
+
+    result = cli_runner.invoke(cli_mod.cli, ["info"], obj=build_testing)
+
+    assert result.exception is None, result.exception
+    assert result.exit_code == 0, result.output
+
+
+@pytest.mark.os_agnostic
+def test_the_testing_runtime_puts_the_log_variables_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_CONSOLE_LEVEL", "bogus")
+
+    build_testing().init_logging(Config({}, {}))
+
+    assert lib_log_rich.runtime.is_initialised() is True
+    assert os.environ.get("LOG_CONSOLE_LEVEL") == "bogus"
 
 
 def _deploy_nothing(**_kwargs: Any) -> list[Path]:
