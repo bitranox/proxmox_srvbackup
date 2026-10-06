@@ -38,7 +38,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   (`adapters/cli/config_load.py`); `backup`, `setup-keys`, `config`, `send-email` and
   `send-notification` refuse with exit 78 and one line naming it, while
   `config-generate-examples`, `info`, `hello`, `logdemo` and help still run. `config-deploy` runs
-  too, with the default permissions, and warns which configuration it could not read, so
+  too: it reads nothing from that configuration (see the next entry), so
   `config-deploy --force` replaces the broken file. An unreadable file (exit 13 before) takes the
   same path, and so does an `--env-file` that is not UTF-8 (the line names the file).
   `--traceback` prints the loader's chained traceback before the line. What the command line gets
@@ -58,8 +58,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   itself: from the bundled defaults, the configuration files the deploy does not overwrite and the
   environment, never from `.env` (nor `--env-file`). So a `.env` in the working directory can
   neither change a deployed mode nor block a deploy, and `config-deploy --force` replaces a
-  deployed file that does not parse or holds a bad value without further options (the warning
-  about a configuration that did not load is gone: the deploy no longer reads it). A malformed or
+  deployed file that does not parse or holds a bad value without further options. A malformed or
   out-of-range mode, a bare integer (TOML `user_file = 400` is decimal 400, i.e. `0o620`), an
   unsafe mode, a non-boolean `enabled`, a section that is not a table or an unknown key stops the
   command with exit 78 before anything is written: one `Error:` line per problem naming the key
