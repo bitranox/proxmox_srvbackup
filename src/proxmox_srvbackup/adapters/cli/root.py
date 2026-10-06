@@ -15,12 +15,14 @@ import rich_click as click
 
 from proxmox_srvbackup import __init__conf__
 
-from .config_load import load_config
+from .config_load import load_config, start_logging
 from .constants import CLICK_CONTEXT_SETTINGS
 from .context import apply_traceback_preferences, store_cli_context
 from .typed_click import option, version_option
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from proxmox_srvbackup.composition import AppServices
 
 
@@ -87,13 +89,15 @@ def cli(
         >>> "Hello World" in result.output
         True
     """
-    # ctx.obj is always the services factory (production or test)
-    if not callable(ctx.obj):
+    # ctx.obj is always the services factory (production or test). click types it as Any, which
+    # callable() would narrow to a callable returning object; declared first, it keeps its type.
+    factory: Callable[[], AppServices] | None = ctx.obj
+    if not callable(factory):
         raise RuntimeError("Services factory not provided. This is a bug.")
-    services: AppServices = ctx.obj()  # type: ignore[assignment]  # Click's obj is typed as Any
+    services = factory()
     # A load failure is recorded, not reported here: see config_load for who reports it.
     config, config_error = load_config(services, profile=profile, env_file=env_file, set_overrides=set_overrides)
-    services.init_logging(config)
+    config, config_error = start_logging(services, config, config_error, env_file=env_file)
     store_cli_context(
         ctx,
         traceback=traceback,

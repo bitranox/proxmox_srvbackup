@@ -101,9 +101,12 @@ class LoadEmailConfigFromDict(Protocol):
 
 
 class InitLogging(Protocol):
-    """Initialize lib_log_rich runtime with the provided configuration."""
+    """Initialize lib_log_rich runtime with the provided configuration.
 
-    def __call__(self, config: Config) -> None: ...
+    ``dotenv_path`` is the ``.env`` the configuration was loaded with, or None for the nearest one.
+    """
+
+    def __call__(self, config: Config, *, dotenv_path: str | None = None) -> None: ...
 
 
 class RunRemoteCommand(Protocol):

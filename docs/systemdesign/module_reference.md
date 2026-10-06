@@ -41,7 +41,7 @@ Complete (v1.9.0)
 - `src/proxmox_srvbackup/adapters/email/validation.py` — Email address validation
 
 ### Adapters Layer — Logging
-- `src/proxmox_srvbackup/adapters/logging/setup.py` — lib_log_rich initialization
+- `src/proxmox_srvbackup/adapters/logging/setup.py` - lib_log_rich initialization; takes only `LOG_*` from a `.env`, raises `InvalidLoggingConfigError` for a refused `[lib_log_rich]` value
 
 ### Adapters Layer — CLI
 - `src/proxmox_srvbackup/adapters/cli/` — CLI adapter package:
@@ -49,7 +49,7 @@ Complete (v1.9.0)
   - `constants.py` — Shared constants
   - `exit_codes.py` — POSIX exit codes (ExitCode IntEnum)
   - `context.py` — Click context helpers
-  - `config_load.py` - Loads the configuration for the root group, records a load failure, and refuses (exit 78) the commands that read it
+  - `config_load.py` - Loads the configuration and starts logging for the root group, records a load or logging-section failure, and refuses (exit 78) the commands that read it
   - `root.py` — Root command group
   - `main.py` — Entry point (accepts services_factory)
   - `commands/backup.py` — backup, setup-keys commands
@@ -107,6 +107,7 @@ Complete (v1.9.0)
 - `tests/test_display.py` — Config display formatting tests
 - `tests/test_enums.py` — Domain enum tests
 - `tests/test_errors.py` — Domain error type tests
+- `tests/test_logging_dotenv_isolation.py` - Only `LOG_*` lines of a `.env` reach the environment; an invalid `[lib_log_rich]` value is a configuration failure (78)
 - `tests/test_logging.py` — Logging configuration model tests
 - `tests/test_mail.py` — Email configuration and sending tests
 - `tests/test_memory_logging.py` - Testing-composition logging runtime and the per-test logging reset

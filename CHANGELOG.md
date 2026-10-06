@@ -81,6 +81,24 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   table that was refused, or one bogus list entry. They now show a JSON object or array
   (unquoted in `.env`, shell-quoted in the environment) or one key per entry
   (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`), and describe how an unquoted value converts.
+- **A `.env` reaches logging and nothing else.** The logging setup called lib_log_rich's
+  `enable_dotenv()`, which copied every line of the nearest `.env` into the process environment,
+  so a later configuration load (`config --profile`, the deploy's permission read) took an
+  app-prefixed `.env` line for the environment layer: a prefixed
+  `..._DEFAULT_PERMISSIONS__USER_FILE=400` in the working directory refused `config-deploy` even
+  under `--env-file`. Logging now copies only the `LOG_*` lines, never over a variable that is
+  already set, and reads them from the `--env-file` when one is given; otherwise from the nearest
+  `.env` up to the project root, without changing directory and passing over a directory it
+  cannot read. A `.env` that is not UTF-8 no longer stops logging from starting, and neither does
+  a working directory that was deleted. Other `.env` lines (`DEVELOPMENT_MODE=1` included) no
+  longer reach the environment; set such a variable in the environment itself.
+- **An invalid `[lib_log_rich]` value no longer disables every command.** A value lib_log_rich
+  refuses (`rate_limit = "100:60"`, `queue_maxsize = 0`, an unknown `console_level`) exited 22
+  with pydantic's multi-line report from every command, `backup` and `config-deploy --force`
+  included. It is now a configuration failure like a broken file: logging starts with its
+  defaults, `backup`, `setup-keys`, `config`, `send-email` and `send-notification` refuse with
+  exit 78 and one line per problem (`lib_log_rich.rate_limit: Input should be a valid tuple`),
+  never the refused value, and the other commands run.
 
 ### Changed
 - **Exit code change: a configuration that does not load exits 78, an invalid `--profile` name
@@ -110,6 +128,12 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`,
   `commands/config.py`) but only had it through rich-click. A new test fails when a runtime
   import is missing from `[project].dependencies`.
+- **Exit code change: an invalid `[lib_log_rich]` value exits 78 from the commands that read the
+  configuration, and no longer stops the others** (was 22 from every command; see Fixed).
+  **Requires python-dotenv** (already installed through lib_log_rich): the logging setup reads the
+  `LOG_*` lines of a `.env` itself. **`InitLogging` takes `dotenv_path`**: the port is
+  `init_logging(config, *, dotenv_path=None)`. `InvalidLoggingConfigError` (a
+  `ConfigurationError`) is what the logging setup raises for a refused setting.
 
 ### Removed
 - `adapters.config.permissions` as a whole: `parse_mode` (whose silent fall-back to the default
