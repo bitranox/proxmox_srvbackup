@@ -27,6 +27,8 @@ class ExitCode(IntEnum):
     * 2-13: errno-derived codes (ENOENT, EACCES)
     * 22: EINVAL
     * 69: EX_UNAVAILABLE (sysexits.h)
+    * 77: EX_NOPERM (sysexits.h): refused by policy, such as an email attachment
+      btx_lib_mail's security checks reject
     * 78: EX_CONFIG (sysexits.h)
     * 110: ETIMEDOUT
     * 128+N: signal N (informational only)
@@ -44,6 +46,7 @@ class ExitCode(IntEnum):
     PERMISSION_DENIED = 13
     INVALID_ARGUMENT = 22
     SMTP_FAILURE = 69
+    ATTACHMENT_REFUSED = 77
     CONFIG_ERROR = 78
     TIMEOUT = 110
     SIGNAL_INT = 130

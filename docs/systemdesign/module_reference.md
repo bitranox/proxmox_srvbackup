@@ -90,6 +90,7 @@ Complete (v1.9.0)
 - `tests/test_backup_per_server.py` — Per-server backup type control (_as_bool, _servers_from_config, skip semantics, dry-run)
 - `tests/test_behaviors.py` — Domain function tests (greeting, timestamp, filename builders, summary formatting)
 - `tests/test_cache_effectiveness.py` — LRU cache behavior tests
+- `tests/test_cli_attachment_refused.py` - An attachment btx_lib_mail's security checks refuse exits 77 with one `Error:` line, nothing delivered
 - `tests/test_cli_config_errors.py` - A configuration that does not load: which commands refuse (78), which still run, and the usage errors (2) checked before loading
 - `tests/test_cli_config.py` — CLI config command tests (display, JSON format, section filtering, deploy, profile, redaction)
 - `tests/test_cli_core.py` — Core CLI tests (traceback, main entry, help, hello, fail, info)
@@ -165,6 +166,7 @@ POSIX-conventional exit codes defined in `adapters/cli/exit_codes.py`:
 | 13 | `PERMISSION_DENIED` | Cannot write to target directory |
 | 22 | `INVALID_ARGUMENT` | Invalid CLI argument or section not found |
 | 69 | `SMTP_FAILURE` | SMTP delivery failed |
+| 77 | `ATTACHMENT_REFUSED` | Attachment refused by btx_lib_mail's security checks (blocked extension or directory, symlink, size, ...) |
 | 78 | `CONFIG_ERROR` | Missing required configuration |
 | 110 | `TIMEOUT` | Operation timed out |
 | 130 | `SIGNAL_INT` | Interrupted (SIGINT/Ctrl+C) |
@@ -279,7 +281,7 @@ Send email using configured SMTP settings.
 | `--use-starttls / --no-use-starttls` | Override STARTTLS |
 | `--timeout SECONDS` | Override timeout |
 
-**Exit codes:** 0, 2 (file not found, or another usage error), 22 (invalid option value), 69 (SMTP failure), 78 (no SMTP hosts, an invalid `[email]` section, or configuration not loadable)
+**Exit codes:** 0, 2 (file not found, or another usage error), 22 (invalid option value), 69 (SMTP failure), 77 (an attachment refused by btx_lib_mail's security checks), 78 (no SMTP hosts, an invalid `[email]` section, or configuration not loadable)
 
 ### send-notification
 

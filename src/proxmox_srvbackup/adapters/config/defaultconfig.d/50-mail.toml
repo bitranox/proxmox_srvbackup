@@ -236,5 +236,6 @@ allow_symlinks = false
 # Default: true (raise AttachmentSecurityError)
 # Environment Variable: PROXMOX_SRVBACKUP___EMAIL__ATTACHMENTS__RAISE_ON_SECURITY_VIOLATION=true
 # .env: EMAIL__ATTACHMENTS__RAISE_ON_SECURITY_VIOLATION=true
-# Note: When false, violations log a warning and skip the attachment
+# Note: When true, send-email refuses the whole message and exits 77 (EX_NOPERM)
+#   naming the violation; when false, violations log a warning and skip the attachment
 raise_on_security_violation = true

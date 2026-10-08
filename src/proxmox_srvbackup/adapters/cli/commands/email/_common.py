@@ -12,6 +12,7 @@ import os
 from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import rich_click as click
+from btx_lib_mail import AttachmentSecurityError
 from pydantic import ValidationError
 
 from proxmox_srvbackup import __init__conf__
@@ -165,10 +166,12 @@ def execute_with_email_error_handling(
         Exceptions are caught in specificity order (most specific first):
 
         1. ConfigurationError -> CONFIG_ERROR (78): Missing/invalid config
-        2. ValueError -> INVALID_ARGUMENT (2): Invalid parameters or email format
-        3. FileNotFoundError -> FILE_NOT_FOUND (66): Missing attachment (if enabled)
-        4. DeliveryError/RuntimeError -> SMTP_FAILURE (69): SMTP transport failures
-        5. Exception (catch-all) -> GENERAL_ERROR (1): Unexpected errors with traceback
+        2. ValueError -> INVALID_ARGUMENT (22): Invalid parameters or email format
+        3. FileNotFoundError -> FILE_NOT_FOUND (2): Missing attachment (if enabled)
+        4. AttachmentSecurityError -> ATTACHMENT_REFUSED (77): An attachment btx_lib_mail's
+           security checks refuse (blocked extension or directory, symlink, size, ...)
+        5. DeliveryError/RuntimeError -> SMTP_FAILURE (69): SMTP transport failures
+        6. Exception (catch-all) -> GENERAL_ERROR (1): Unexpected errors with traceback
 
         This ordering ensures specific exceptions aren't caught by broader handlers.
         When adding new exception types, insert them before the catch-all Exception handler.
@@ -203,6 +206,8 @@ def execute_with_email_error_handling(
             "Attachment file not found",
             exit_code=ExitCode.FILE_NOT_FOUND,
         )
+    except AttachmentSecurityError as exc:
+        _refuse_attachment(exc)
     except (DeliveryError, RuntimeError) as exc:
         _handle_send_error(
             exc,
@@ -260,6 +265,27 @@ def _refuse_email_config(exc: ValidationError, heading: str, *, exit_code: ExitC
     for problem in problems:
         click.echo(f"Error: {heading}: {problem}", err=True)
     get_current_context().exit(exit_code)
+
+
+def _refuse_attachment(exc: AttachmentSecurityError) -> NoReturn:
+    """Report an attachment btx_lib_mail refused on security grounds, then exit 77.
+
+    The refusal is policy working as configured, not a crash, so no traceback is logged. The
+    user sees the library's reason, which names the violation and the resolved path; it never
+    carries a credential.
+
+    Args:
+        exc: The refusal btx_lib_mail raised.
+
+    Raises:
+        click.exceptions.Exit: Always raised, with the ATTACHMENT_REFUSED exit code.
+    """
+    logger.error(
+        "Attachment refused by security policy",
+        extra={"reason": exc.reason, "violation_type": exc.violation_type.value},
+    )
+    click.echo(f"\nError: Attachment refused by security policy - {exc.reason}", err=True)
+    get_current_context().exit(ExitCode.ATTACHMENT_REFUSED)
 
 
 def _handle_send_result(result: bool, recipients: list[str] | None, message_type: str) -> None:
