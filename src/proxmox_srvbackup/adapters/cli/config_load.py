@@ -16,6 +16,7 @@ Contents:
     * :func:`load_config` - load with profile, ``.env`` and ``--set``, or say why not.
     * :func:`start_logging` - start logging; an invalid ``[lib_log_rich]`` value or ``LOG_*``
       variable is a load failure.
+    * :func:`check_logging` - the same refusal for a configuration loaded after logging started.
     * :func:`require_config` - the configuration, or exit 78 naming the failure.
     * :func:`report_load_failure` - the one-line report, after the traceback on request.
     * :func:`echo_load_traceback` - the loader's traceback alone, for a caller with its own line.
@@ -33,6 +34,7 @@ from proxmox_srvbackup.adapters.config.loader import validate_profile
 from proxmox_srvbackup.adapters.config.overrides import apply_overrides, nest_overrides
 from proxmox_srvbackup.adapters.logging.setup import InvalidLoggingConfigError
 
+from . import safe_console
 from .exit_codes import ExitCode
 
 if TYPE_CHECKING:
@@ -74,8 +76,9 @@ def load_config(
 
     Raises:
         click.UsageError: A ``--set`` value is malformed, two of them conflict, or the
-            profile name is invalid; that is a command-line error (exit 2), not a
-            configuration one, and it is raised whether or not the configuration would load.
+            profile name is invalid;
+            that is a command-line error (exit 2), not a configuration one, and it is
+            raised whether or not the configuration would load.
 
     Example:
         >>> from proxmox_srvbackup.composition import build_testing
@@ -102,7 +105,8 @@ def start_logging(
     refused setting) before it raises, and the commands that read the configuration refuse with
     exit 78 and the refusal: ``lib_log_rich.<key>: <reason>`` for a problem the section's type
     check finds, lib_log_rich's own message for a value only lib_log_rich refuses, whether it
-    came from the section or a ``LOG_*`` variable (``lib_log_rich: Unknown log level: 'bogus'``).
+    came from the section or a ``LOG_*`` variable (``lib_log_rich: Invalid runtime settings:
+    console_level: Unknown log level: 'bogus'``).
 
     Args:
         services: The composition's services; only ``init_logging`` is used.
@@ -121,6 +125,29 @@ def start_logging(
     return config, config_error
 
 
+def check_logging(services: AppServices, config: Config) -> Exception | None:
+    """Judge the logging settings of a configuration loaded after logging started; a refusal is returned.
+
+    ``config --profile`` reloads the configuration once logging is running, so
+    :func:`start_logging` never sees the reloaded ``[lib_log_rich]`` section; without this an
+    invalid value there would display with exit 0 while plain ``config`` exits 78. The check
+    refuses what :func:`start_logging` refuses, in the same words, and never touches the
+    running runtime: the command keeps logging with the settings logging started with.
+
+    Args:
+        services: The composition's services; only ``check_logging_config`` is used.
+        config: The configuration :func:`load_config` returned.
+
+    Returns:
+        None, or the refusal.
+    """
+    try:
+        services.check_logging_config(config)
+    except InvalidLoggingConfigError as exc:
+        return exc
+    return None
+
+
 def echo_load_traceback(error: Exception, *, show_traceback: bool) -> None:
     """Write the loader's chained traceback to stderr when ``--traceback`` was given.
 
@@ -132,7 +159,7 @@ def echo_load_traceback(error: Exception, *, show_traceback: bool) -> None:
         show_traceback: Whether ``--traceback`` was given.
     """
     if show_traceback:
-        click.echo("".join(format_exception(error)).rstrip(), err=True)
+        safe_console.echo("".join(format_exception(error)).rstrip(), err=True)
 
 
 def report_load_failure(error: Exception, *, show_traceback: bool) -> None:
@@ -145,7 +172,7 @@ def report_load_failure(error: Exception, *, show_traceback: bool) -> None:
     echo_load_traceback(error, show_traceback=show_traceback)
     problems = error.problems if isinstance(error, InvalidLoggingConfigError) else [str(error)]
     for problem in problems:
-        click.echo(f"Error: {problem}", err=True)
+        safe_console.echo(f"Error: {problem}", err=True)
 
 
 def require_config(ctx: click.Context, cli_ctx: CLIContext) -> Config:
@@ -168,4 +195,11 @@ def require_config(ctx: click.Context, cli_ctx: CLIContext) -> Config:
     return cli_ctx.config
 
 
-__all__ = ["echo_load_traceback", "load_config", "report_load_failure", "require_config", "start_logging"]
+__all__ = [
+    "check_logging",
+    "echo_load_traceback",
+    "load_config",
+    "report_load_failure",
+    "require_config",
+    "start_logging",
+]

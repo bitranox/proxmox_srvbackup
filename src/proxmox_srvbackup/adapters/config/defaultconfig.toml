@@ -8,22 +8,29 @@
 # This file contains the default configuration that ships with the application.
 # Additional settings can be placed in defaultconfig.d/*.toml
 #
-# Settings can be overridden via:
-#   - Application-level config (Linux):
-#        - /etc/xdg/proxmox-srvbackup/config.[toml|yaml|json]
-#        - /etc/xdg/proxmox-srvbackup/config.d/*.[toml|yaml|json]
-#   - Host-level config (macOS):
-#        - /Library/Application Support/bitranox/Bitranox Template Py Cli/config.[toml|yaml|json]
-#        - /Library/Application Support/bitranox/Bitranox Template Py Cli/config.d/*.[toml|yaml|json]
-#   - User-level config (Linux):
-#        - ~/.config/proxmox-srvbackup/config.[toml|yaml|json]
-#        - ~/.config/proxmox-srvbackup/config.d/*.[toml|yaml|json]
-#   - User-level config (macOS):
-#        - ~/Library/Application Support/bitranox/Bitranox Template Py Cli/config.[toml|yaml|json]
-#   - .env files: .env in current directory or parent directories
+# Settings can be overridden via (each layer reads config.toml, then the files in its
+# config.d/ directory in lexical order; a config.d/ file may be .toml, .yaml, .yml or .json):
+#   - Application-level config:
+#        - Linux:   /etc/xdg/proxmox-srvbackup/config.toml and config.d/*
+#                   (then /etc/proxmox-srvbackup/config.toml and config.d/*)
+#        - macOS:   /Library/Application Support/bitranox/proxmox_srvbackup/config.toml and config.d/*
+#        - Windows: C:\ProgramData\bitranox\proxmox_srvbackup\config.toml and config.d\*
+#   - Host-level config (<hostname> is this machine's host name):
+#        - Linux:   /etc/xdg/proxmox-srvbackup/hosts/<hostname>.toml and hosts/<hostname>.d/*
+#        - macOS:   /Library/Application Support/bitranox/proxmox_srvbackup/hosts/<hostname>.toml
+#        - Windows: C:\ProgramData\bitranox\proxmox_srvbackup\hosts\<hostname>.toml
+#   - User-level config:
+#        - Linux:   ~/.config/proxmox-srvbackup/config.toml and config.d/*
+#                   ($XDG_CONFIG_HOME replaces ~/.config when set)
+#        - macOS:   ~/Library/Application Support/bitranox/proxmox_srvbackup/config.toml and config.d/*
+#        - Windows: %APPDATA%\bitranox\proxmox_srvbackup\config.toml and config.d\*
+#   - .env file: the first .env found in the current directory or a parent directory; when
+#     there is none, $XDG_CONFIG_HOME/proxmox-srvbackup/.env (Linux; ~/.config when
+#     unset), ~/Library/Application Support/bitranox/proxmox_srvbackup/.env (macOS),
+#     %APPDATA%\bitranox\proxmox_srvbackup\.env (Windows)
 #   - Environment variables: Prefix with PROXMOX_SRVBACKUP___
 #
-# Precedence (lowest to highest): defaults → app → host → user → dotenv → env
+# Precedence (lowest to highest): defaults -> app -> host -> user -> dotenv -> env
 #
 # IMPORTANT: Naming Conventions for .env Files vs Environment Variables
 # ----------------------------------------------------------------------
@@ -48,4 +55,7 @@
 #     PROXMOX_SRVBACKUP___LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
 #     PROXMOX_SRVBACKUP___EMAIL__SMTP_PASSWORD=secret
 #
-# Value coercion: "true"/"false" → bool, "null"/"none" → None, numbers → int/float
+# Value conversion (.env and environment alike): an unquoted value converts - true/false
+# become booleans, null/none become None (except for secret keys such as passwords), a JSON
+# array/object is parsed, and a number becomes a number only when it converts back to the same
+# text (007 and 1.50 stay text). Quote a .env value to keep it as text.

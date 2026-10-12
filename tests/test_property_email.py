@@ -12,6 +12,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
+from proxmox_srvbackup.adapters.email.config import load_email_config_from_dict
 from proxmox_srvbackup.adapters.email.sender import EmailConfig
 
 # ======================== Strategy helpers ========================
@@ -68,9 +69,9 @@ def test_multiple_valid_recipients_pass_validation(emails: list[str]) -> None:
 @settings(max_examples=100)
 def test_valid_smtp_hosts_pass_validation(host: str) -> None:
     """SMTP hosts in 'hostname:port' format are accepted."""
-    config = EmailConfig(smtp_hosts=[host])
+    config = EmailConfig(smtphosts=[host])
 
-    assert config.smtp_hosts == [host]
+    assert config.smtphosts == [host]
 
 
 @pytest.mark.os_agnostic
@@ -80,9 +81,9 @@ def test_port_numbers_in_valid_range_pass_validation(port: int) -> None:
     """Port numbers between 1 and 65535 are accepted in SMTP host strings."""
     host = f"smtp.example.com:{port}"
 
-    config = EmailConfig(smtp_hosts=[host])
+    config = EmailConfig(smtphosts=[host])
 
-    assert config.smtp_hosts == [host]
+    assert config.smtphosts == [host]
 
 
 # ======================== Timeout validation tests ========================
@@ -94,7 +95,7 @@ def test_port_numbers_in_valid_range_pass_validation(port: int) -> None:
 def test_non_positive_timeouts_are_rejected(timeout: float) -> None:
     """Timeouts that are zero or negative are rejected by the model validator."""
     with pytest.raises(ValidationError, match="timeout must be positive"):
-        EmailConfig(timeout=timeout)
+        EmailConfig(smtp_timeout=timeout)
 
 
 @pytest.mark.os_agnostic
@@ -102,9 +103,9 @@ def test_non_positive_timeouts_are_rejected(timeout: float) -> None:
 @settings(max_examples=100)
 def test_positive_timeouts_pass_validation(timeout: float) -> None:
     """Positive timeout values are accepted."""
-    config = EmailConfig(timeout=timeout)
+    config = EmailConfig(smtp_timeout=timeout)
 
-    assert config.timeout == timeout
+    assert config.smtp_timeout == timeout
 
 
 # ======================== Boolean field tests ========================
@@ -114,9 +115,9 @@ def test_positive_timeouts_pass_validation(timeout: float) -> None:
 @given(use_starttls=st.booleans())
 def test_use_starttls_accepts_any_boolean(use_starttls: bool) -> None:
     """The use_starttls field accepts both True and False."""
-    config = EmailConfig(use_starttls=use_starttls)
+    config = EmailConfig(smtp_use_starttls=use_starttls)
 
-    assert config.use_starttls is use_starttls
+    assert config.smtp_use_starttls is use_starttls
 
 
 # ======================== Empty/None from_address tests ========================
@@ -126,8 +127,8 @@ def test_use_starttls_accepts_any_boolean(use_starttls: bool) -> None:
 @given(whitespace=st.from_regex(r"\s*", fullmatch=True))
 @settings(max_examples=50)
 def test_whitespace_only_from_address_coerces_to_none(whitespace: str) -> None:
-    """Whitespace-only from_address strings are coerced to None."""
-    config = EmailConfig(from_address=whitespace)
+    """A whitespace-only from_address in the configuration means not configured."""
+    config = load_email_config_from_dict({"email": {"from_address": whitespace}})
 
     assert config.from_address is None
 
@@ -143,7 +144,7 @@ def test_invalid_runtime_recipients_are_rejected_in_memory_adapter(invalid_email
     from proxmox_srvbackup.adapters.memory.email import EmailSpy
     from proxmox_srvbackup.domain.errors import InvalidRecipientError
 
-    config = EmailConfig(smtp_hosts=["smtp.example.com:587"])
+    config = EmailConfig(smtphosts=["smtp.example.com:587"])
     spy = EmailSpy()
 
     with pytest.raises(InvalidRecipientError, match="Invalid recipient"):
@@ -163,7 +164,7 @@ def test_invalid_runtime_recipients_are_rejected_in_notification(invalid_email: 
     from proxmox_srvbackup.adapters.memory.email import EmailSpy
     from proxmox_srvbackup.domain.errors import InvalidRecipientError
 
-    config = EmailConfig(smtp_hosts=["smtp.example.com:587"])
+    config = EmailConfig(smtphosts=["smtp.example.com:587"])
     spy = EmailSpy()
 
     with pytest.raises(InvalidRecipientError, match="Invalid recipient"):
@@ -186,35 +187,32 @@ _extension = st.from_regex(r"[a-z]{1,8}", fullmatch=True)
 @given(extensions=st.lists(_extension, min_size=0, max_size=10))
 @settings(max_examples=50)
 def test_attachment_allowed_extensions_accepts_frozenset(extensions: list[str]) -> None:
-    """Frozenset of extensions is accepted for attachment_allowed_extensions."""
-    ext_set = frozenset(extensions)
-    config = EmailConfig(attachment_allowed_extensions=ext_set)
+    """Frozenset of extensions is accepted for attachment_allowed_extensions, dot-prefixed by ConfMail."""
+    config = EmailConfig(attachment_allowed_extensions=frozenset(extensions))
 
-    assert config.attachment_allowed_extensions == ext_set
+    assert config.attachment_allowed_extensions == frozenset(f".{extension}" for extension in extensions)
 
 
 @pytest.mark.os_agnostic
 @given(extensions=st.lists(_extension, min_size=1, max_size=10))
 @settings(max_examples=50)
 def test_attachment_blocked_extensions_accepts_frozenset(extensions: list[str]) -> None:
-    """Frozenset of extensions is accepted for attachment_blocked_extensions."""
-    ext_set = frozenset(extensions)
-    config = EmailConfig(attachment_blocked_extensions=ext_set)
+    """Frozenset of extensions is accepted for attachment_blocked_extensions, dot-prefixed by ConfMail."""
+    config = EmailConfig(attachment_blocked_extensions=frozenset(extensions))
 
-    assert config.attachment_blocked_extensions == ext_set
+    assert config.attachment_blocked_extensions == frozenset(f".{extension}" for extension in extensions)
 
 
 @pytest.mark.os_agnostic
 @given(extensions=st.lists(_extension, min_size=0, max_size=5))
 @settings(max_examples=50)
 def test_attachment_extensions_list_coerces_to_frozenset(extensions: list[str]) -> None:
-    """List of extensions is coerced to frozenset."""
-    config = EmailConfig(attachment_allowed_extensions=extensions)  # type: ignore[arg-type]
+    """A configured list of extensions becomes a frozenset; an empty one means the library defaults."""
+    config = load_email_config_from_dict({"email": {"attachments": {"allowed_extensions": extensions}}})
 
     if extensions:
-        assert config.attachment_allowed_extensions == frozenset(extensions)
+        assert config.attachment_allowed_extensions == frozenset(f".{extension}" for extension in extensions)
     else:
-        # Empty list coerces to None (use library defaults)
         assert config.attachment_allowed_extensions is None
 
 
@@ -230,8 +228,8 @@ def test_attachment_max_size_bytes_accepts_positive_integers(max_size: int) -> N
 
 @pytest.mark.os_agnostic
 def test_attachment_max_size_bytes_zero_coerces_to_none() -> None:
-    """Zero max_size_bytes coerces to None (disables size checking)."""
-    config = EmailConfig(attachment_max_size_bytes=0)
+    """A configured max_size_bytes of 0 means no size limit."""
+    config = load_email_config_from_dict({"email": {"attachments": {"max_size_bytes": 0}}})
 
     assert config.attachment_max_size_bytes is None
 
@@ -278,7 +276,7 @@ def test_attachment_directories_list_coerces_to_frozenset() -> None:
 
 @pytest.mark.os_agnostic
 def test_attachment_directories_empty_list_coerces_to_none() -> None:
-    """Empty list for directories coerces to None (use library defaults)."""
-    config = EmailConfig(attachment_allowed_directories=[])  # type: ignore[arg-type]
+    """A configured empty directory list means the library defaults."""
+    config = load_email_config_from_dict({"email": {"attachments": {"allowed_directories": []}}})
 
     assert config.attachment_allowed_directories is None

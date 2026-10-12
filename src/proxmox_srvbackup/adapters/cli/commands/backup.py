@@ -19,6 +19,7 @@ from proxmox_srvbackup.domain.behaviors import build_summary_report, build_summa
 from proxmox_srvbackup.domain.enums import BackupType
 from proxmox_srvbackup.domain.models import BackupSummary, ServerConfig
 
+from .. import safe_console
 from ..config_load import require_config
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
@@ -113,13 +114,13 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
         servers = _servers_from_config(config.as_dict())
 
         if not servers:
-            click.echo("No servers configured in [backup.servers] section.", err=True)
+            safe_console.echo("No servers configured in [backup.servers] section.", err=True)
             ctx.exit(ExitCode.GENERAL_ERROR)
 
         if server:
             servers = [s for s in servers if s.name == server]
             if not servers:
-                click.echo(f"Server '{server}' not found in configuration.", err=True)
+                safe_console.echo(f"Server '{server}' not found in configuration.", err=True)
                 ctx.exit(ExitCode.INVALID_ARGUMENT)
 
         logger.info(
@@ -130,7 +131,7 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
         )
 
         if dry_run:
-            click.echo(f"[DRY-RUN] Would backup {len(servers)} server(s):")
+            safe_console.echo(f"[DRY-RUN] Would backup {len(servers)} server(s):")
             for srv in servers:
                 mode = "local" if srv.is_local else "ssh"
                 types: list[str] = []
@@ -139,7 +140,7 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
                 if srv.backup_snapshot:
                     types.append("zfs")
                 types_str = "+".join(types) if types else "none"
-                click.echo(f"  {srv.name} ({srv.hostname}) [{mode}] [{types_str}]")
+                safe_console.echo(f"  {srv.name} ({srv.hostname}) [{mode}] [{types_str}]")
 
         settings = extract_backup_settings(config)
 
@@ -152,8 +153,8 @@ def cli_backup(ctx: click.Context, server: str | None, backup_type: str, dry_run
         )
 
         report = build_summary_report(summary)
-        click.echo()
-        click.echo(report)
+        safe_console.echo()
+        safe_console.echo(report)
 
         if not dry_run:
             _send_summary_email(cli_ctx, summary, report)
@@ -199,15 +200,15 @@ def cli_setup_keys(ctx: click.Context) -> None:
         settings = extract_backup_settings(config)
 
         if not settings.bootstrap_key:
-            click.echo("No bootstrap_key configured in [backup] section.", err=True)
+            safe_console.echo("No bootstrap_key configured in [backup] section.", err=True)
             ctx.exit(ExitCode.GENERAL_ERROR)
 
-        click.echo(f"Setting up SSH keys for {len(servers)} server(s)...")
-        click.echo(f"  Key directory: {settings.ssh_key_dir}")
-        click.echo(f"  Key prefix: {settings.ssh_key_prefix}")
-        click.echo(f"  Bootstrap key: {settings.bootstrap_key}")
-        click.echo(f"  Remote authorized_keys: {settings.authorized_keys_path}")
-        click.echo()
+        safe_console.echo(f"Setting up SSH keys for {len(servers)} server(s)...")
+        safe_console.echo(f"  Key directory: {settings.ssh_key_dir}")
+        safe_console.echo(f"  Key prefix: {settings.ssh_key_prefix}")
+        safe_console.echo(f"  Bootstrap key: {settings.bootstrap_key}")
+        safe_console.echo(f"  Remote authorized_keys: {settings.authorized_keys_path}")
+        safe_console.echo()
 
         results = cli_ctx.services.setup_keys(
             servers,
@@ -221,15 +222,15 @@ def cli_setup_keys(ctx: click.Context) -> None:
         for name, success in sorted(results.items()):
             status = "OK" if success else "FAILED"
             symbol = "+" if success else "!"
-            click.echo(f"  [{symbol}] {name}: {status}")
+            safe_console.echo(f"  [{symbol}] {name}: {status}")
             if not success:
                 all_ok = False
 
         if not all_ok:
-            click.echo("\nSome key deployments failed. Check the log for details.", err=True)
+            safe_console.echo("\nSome key deployments failed. Check the log for details.", err=True)
             ctx.exit(ExitCode.GENERAL_ERROR)
 
-        click.echo("\nAll keys deployed successfully.")
+        safe_console.echo("\nAll keys deployed successfully.")
 
 
 __all__ = ["cli_backup", "cli_setup_keys"]

@@ -52,6 +52,7 @@ def inject_config_with_dotenv_capture(
             send_notification=prod.send_notification,
             load_email_config_from_dict=prod.load_email_config_from_dict,
             init_logging=prod.init_logging,
+            check_logging_config=prod.check_logging_config,
             backup_all=prod.backup_all,
             backup_server=prod.backup_server,
             apply_retention=prod.apply_retention,

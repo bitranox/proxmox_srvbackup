@@ -28,25 +28,22 @@ from .config import (
     get_config_in_memory,
     get_default_config_path_in_memory,
 )
-from .email import (
-    EmailSpy,
-    load_email_config_from_dict_in_memory,
-)
-from .logging import init_logging_in_memory
+from .email import EmailSpy
+from .logging import check_logging_config_in_memory, init_logging_in_memory
 
 # Static conformance assertions
 if TYPE_CHECKING:
     from proxmox_srvbackup.application.ports import (
+        CheckLoggingConfig,
         GetConfig,
         GetDefaultConfigPath,
         InitLogging,
-        LoadEmailConfigFromDict,
     )
 
     _assert_get_config: GetConfig = get_config_in_memory
     _assert_get_default_config_path: GetDefaultConfigPath = get_default_config_path_in_memory
-    _assert_load_email_config: LoadEmailConfigFromDict = load_email_config_from_dict_in_memory
     _assert_init_logging: InitLogging = init_logging_in_memory
+    _assert_check_logging_config: CheckLoggingConfig = check_logging_config_in_memory
 
 __all__ = [
     "EmailSpy",
@@ -55,11 +52,11 @@ __all__ = [
     "backup_config_in_memory",
     "backup_server_in_memory",
     "backup_zfs_in_memory",
+    "check_logging_config_in_memory",
     "deploy_configuration_in_memory",
     "display_config_in_memory",
     "get_config_in_memory",
     "get_default_config_path_in_memory",
     "init_logging_in_memory",
-    "load_email_config_from_dict_in_memory",
     "setup_keys_in_memory",
 ]

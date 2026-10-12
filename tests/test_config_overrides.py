@@ -327,6 +327,38 @@ def test_apply_overrides_rejects_malformed_input() -> None:
         apply_overrides(config, ("invalid",))
 
 
+@pytest.mark.os_agnostic
+def test_apply_overrides_names_the_cli_as_the_source_of_an_overridden_key() -> None:
+    """An overridden key reports the CLI as its origin, not the layer it replaced.
+
+    ``Config.with_overrides`` returns the merged data with the ORIGINAL provenance
+    map by design, so without a rebuild ``config`` answers "where did this come
+    from" with the file holding the value that was just replaced.
+    """
+    config = Config({"s": {"k": 1}}, {"s.k": {"layer": "file", "path": "/etc/app.toml", "key": "s.k"}})
+
+    result = apply_overrides(config, ("s.k=2",))
+
+    assert result["s"]["k"] == 2
+    assert result.origin("s.k") == {"layer": "cli", "path": None, "key": "s.k"}
+
+
+@pytest.mark.os_agnostic
+def test_apply_overrides_leaves_an_untouched_key_with_its_own_source() -> None:
+    """Only the keys ``--set`` supplied are relabelled; the rest keep their layer."""
+    config = Config(
+        {"s": {"k": 1, "other": "kept"}},
+        {
+            "s.k": {"layer": "file", "path": "/etc/app.toml", "key": "s.k"},
+            "s.other": {"layer": "env", "path": None, "key": "s.other"},
+        },
+    )
+
+    result = apply_overrides(config, ("s.k=2",))
+
+    assert result.origin("s.other") == {"layer": "env", "path": None, "key": "s.other"}
+
+
 # ======================== conflicting overrides ========================
 
 

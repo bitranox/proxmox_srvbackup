@@ -20,7 +20,6 @@ from lib_layered_config import Config
 
 from proxmox_srvbackup.adapters.cli.exit_codes import ExitCode
 from proxmox_srvbackup.adapters.cli.main import main
-from proxmox_srvbackup.adapters.email.config import load_email_config_from_dict
 from proxmox_srvbackup.adapters.email.transport import send_email
 from proxmox_srvbackup.composition import AppServices, build_testing
 
@@ -74,23 +73,13 @@ def _real_send_email(transport: _Recording) -> Callable[..., bool]:
 
 
 def _services(transport: _Recording, data: dict[str, Any]) -> Callable[[], AppServices]:
-    """The testing composition with the production config loader and the real send adapter.
-
-    The production loader, because the in-memory one does not read the ``[email.attachments]``
-    section, so the warn-mode test would run with the strict default.
-    """
     config = Config(data, {})
 
     def get_config(**_kwargs: Any) -> Config:
         return config
 
     def build() -> AppServices:
-        return dataclasses.replace(
-            build_testing(),
-            get_config=get_config,
-            load_email_config_from_dict=load_email_config_from_dict,
-            send_email=_real_send_email(transport),
-        )
+        return dataclasses.replace(build_testing(), get_config=get_config, send_email=_real_send_email(transport))
 
     return build
 

@@ -9,11 +9,12 @@ dependencies = [
     # Imported directly (adapters/cli/main.py, commands/config.py), not only through rich-click.
     "click>=8.5.0",
     "lib_cli_exit_tools>=2.4.0",
-    "lib_log_rich>=6.3.9",
+    # 6.4.2: validate_config, the check config --profile runs, refuses exactly what init() refuses.
+    "lib_log_rich>=6.5.1",
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.0.1",
+    "lib_layered_config>=7.1.3",
     "btx_lib_mail>=4.0.0",
-    "pydantic>=2.13.5",
+    "pydantic>=2.14.1",
     "orjson>=3.13.0",
 ]
 license = { text = "MIT" }
@@ -51,12 +52,10 @@ Issues = "https://github.com/bitranox/proxmox_srvbackup/issues"
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.168.5",
-  "ruff>=0.16.10",
+  "hypothesis>=6.169.0",
+  "ruff>=0.17.0",
   "pyright[nodejs]>=1.1.414",
   "bandit>=1.9.4",
-  # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable
-  # release; a >=1.5.1 floor has ZERO candidates and makes this extra unresolvable.
   "build>=1.6.1",
   "twine>=7.0.0",
   # codecov-cli is disabled, not dropped: it requires click<8.3.0, which drags click back to
@@ -78,7 +77,7 @@ dev = [
   "wheel>=0.48.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.14.5",         # CVE-2025-22702
+  "virtualenv>=21.14.6",         # CVE-2025-22702
 ]
 
 [project.scripts]
@@ -132,8 +131,11 @@ select = [
 convention = "google"
 
 [tool.ruff.lint.flake8-type-checking]
-# Pydantic resolves field annotations at runtime, so their imports must stay
-# out of TYPE_CHECKING blocks; exempt BaseModel subclasses from TC00x moves.
+# The Pydantic models (EmailConfig, LoggingConfigModel)
+# resolve their field annotations at model-build time, so their field-type imports
+# must stay at runtime even though the file uses ``from __future__ import annotations``.
+# Telling ruff about the Pydantic base keeps TC001/TC002/TC003 from moving those
+# imports into a TYPE_CHECKING block and breaking model construction.
 runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.ruff.lint.per-file-ignores]

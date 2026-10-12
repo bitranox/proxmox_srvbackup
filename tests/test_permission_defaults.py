@@ -192,14 +192,12 @@ def test_no_permissions_with_a_mode_is_a_usage_error(
 
 
 @pytest.fixture
-def real_deploy(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Callable[[], AppServices]:
+def real_deploy(user_layer_in_tmp_path: Path) -> Callable[[], AppServices]:
     """The testing composition with the production deploy, every user-layer location under ``tmp_path``.
 
     The refusals below happen before anything is written; should one ever be accepted, the
     deploy lands in ``tmp_path`` rather than in the real user configuration directory.
     """
-    for name in ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA"):
-        monkeypatch.setenv(name, str(tmp_path))
     return lambda: dataclasses.replace(build_testing(), deploy_configuration=deploy_configuration)
 
 

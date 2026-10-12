@@ -18,6 +18,7 @@ import rich_click as click
 from proxmox_srvbackup import __init__conf__
 from proxmox_srvbackup.domain.behaviors import build_greeting
 
+from .. import safe_console
 from ..constants import CLICK_CONTEXT_SETTINGS
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 def cli_info() -> None:
     """Print resolved metadata so users can inspect installation details.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()
@@ -43,6 +45,7 @@ def cli_info() -> None:
 def cli_hello() -> None:
     """Demonstrate the success path by emitting the canonical greeting.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()
@@ -52,13 +55,14 @@ def cli_hello() -> None:
     """
     with lib_log_rich.runtime.bind(job_id="cli-hello", extra={"command": "hello"}):
         logger.info("Executing hello command")
-        click.echo(build_greeting())
+        safe_console.echo(build_greeting())
 
 
 @click.command("fail", context_settings=CLICK_CONTEXT_SETTINGS)
 def cli_fail() -> None:
     """Trigger the intentional failure helper to test error handling.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()

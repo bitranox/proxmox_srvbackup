@@ -92,7 +92,10 @@ measure for this setup.
 - Automatic retention management (keeps N newest backups per server)
 - Email notifications with status summaries after each backup run
 - Systemd timer/service units for daily automated backups
-- Layered configuration system with defaults, app, host, user, .env, env vars, and CLI overrides
+- Layered configuration system with defaults, app, host, user, .env, env vars, and CLI overrides.
+  The `.env` is the first one found from the current directory upward; when there is none,
+  `$XDG_CONFIG_HOME/proxmox-srvbackup/.env` (`~/.config/...` when unset) is read on Linux
+  (see [CONFIG.md](CONFIG.md) for macOS and Windows).
 - Rich CLI output with [rich-click](https://github.com/ewels/rich-click) styling
 - Structured logging with [lib_log_rich](https://github.com/bitranox/lib_log_rich) (console, journald, Graylog/GELF)
 
@@ -133,12 +136,11 @@ uvx proxmox_srvbackup@latest --help
 ### Persistent install as CLI tool
 
 ```bash
-# Install latest python
-install_latest_python_gcc.sh
-# Pin uv to the latest python
-uv python pin /opt/python-latest/bin/python3
-# Install from PyPI
-uv tool install --python /opt/python-latest/bin/python3 proxmox_srvbackup
+# One-time install from PyPI (isolated environment, added to PATH)
+uv tool install proxmox-srvbackup
+# or from the git repository
+uv tool install --from "git+https://github.com/bitranox/proxmox_srvbackup.git" proxmox-srvbackup
+# Pick the interpreter explicitly if needed, e.g. --python 3.14
 # Update (requires network)
 uv tool upgrade proxmox_srvbackup
 # deploy (overwrite) new default config
@@ -734,7 +736,8 @@ environment variables, `.env` file, or TOML configuration:
 **Environment Variables:**
 
 ```bash
-export PROXMOX_SRVBACKUP___EMAIL__SMTP_HOSTS="smtp.gmail.com:587"
+# A list is a JSON array; a comma-separated value would be ONE host string
+export PROXMOX_SRVBACKUP___EMAIL__SMTP_HOSTS='["smtp.gmail.com:587"]'
 export PROXMOX_SRVBACKUP___EMAIL__FROM_ADDRESS="alerts@example.com"
 export PROXMOX_SRVBACKUP___EMAIL__SMTP_USERNAME="your-email@gmail.com"
 export PROXMOX_SRVBACKUP___EMAIL__SMTP_PASSWORD="your-app-password"
@@ -749,7 +752,21 @@ from_address = "alerts@example.com"
 smtp_username = "your-email@gmail.com"
 smtp_password = "your-app-password"
 use_starttls = true
+starttls_verify = true   # false accepts any certificate: only for a known internal relay
 timeout = 60.0
+# local_hostname = "mail.example.com"   # EHLO name; set it where reverse DNS is slow
+# delivery_deadline = 300               # upper bound in seconds for one SMTP session; 0 = none
+```
+
+A key `[email]` or `[email.attachments]` does not know is refused (exit 78,
+`email.<key>: unknown key`), whichever layer it comes from, so a typo cannot leave a setting at
+its default.
+
+**`.env` File** (no prefix in .env; a prefixed key is not recognised):
+
+```bash
+EMAIL__SMTP_HOSTS=["smtp.gmail.com:587"]
+EMAIL__FROM_ADDRESS=alerts@example.com
 ```
 
 For Gmail, create an [App Password](https://support.google.com/accounts/answer/185833) instead of using your account password.

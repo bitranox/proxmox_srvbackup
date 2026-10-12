@@ -31,7 +31,8 @@ from proxmox_srvbackup.adapters.config.loader import validate_profile
 from proxmox_srvbackup.adapters.config.overrides import nest_overrides
 from proxmox_srvbackup.domain.enums import DeployTarget, OutputFormat
 
-from ..config_load import load_config, report_load_failure, require_config
+from .. import safe_console
+from ..config_load import check_logging, load_config, report_load_failure, require_config
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
@@ -72,6 +73,7 @@ def cli_config(ctx: click.Context, output_format: str, section: str | None, prof
 
     Precedence: defaults -> app -> host -> user -> dotenv -> env
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> from unittest.mock import MagicMock
@@ -88,13 +90,13 @@ def cli_config(ctx: click.Context, output_format: str, section: str | None, prof
             "Displaying configuration",
             extra={"format": fmt.value, "section": section, "profile": effective_profile},
         )
-        click.echo()
+        safe_console.echo()
         try:
             cli_ctx.services.display_config(
                 effective_config, output_format=fmt, section=section, profile=effective_profile
             )
         except ValueError as exc:
-            click.echo(f"\nError: {exc}", err=True)
+            safe_console.echo(f"\nError: {exc}", err=True)
             ctx.exit(ExitCode.INVALID_ARGUMENT)
 
 
@@ -108,7 +110,8 @@ def _resolve_config(ctx: click.Context, cli_ctx: CLIContext, profile: str | None
 
     When a subcommand-level profile override is specified, reloads config
     with that profile, the root's ``--env-file`` and any root-level ``--set``
-    overrides stored in the CLI context.
+    overrides stored in the CLI context, and checks its logging settings, which
+    are refused the way the root refuses its own; logging itself keeps running unchanged.
 
     Args:
         ctx: The running command's click context, exited with 78 when loading failed.
@@ -124,6 +127,8 @@ def _resolve_config(ctx: click.Context, cli_ctx: CLIContext, profile: str | None
     config, error = load_config(
         cli_ctx.services, profile=profile, env_file=cli_ctx.env_file, set_overrides=cli_ctx.set_overrides
     )
+    if error is None:
+        error = check_logging(cli_ctx.services, config)
     if error is not None:
         report_load_failure(error, show_traceback=cli_ctx.traceback)
         ctx.exit(ExitCode.CONFIG_ERROR)
@@ -199,10 +204,7 @@ def _check_profile_name(_ctx: click.Context, _param: click.Parameter, value: str
     "--force",
     is_flag=True,
     default=False,
-    help=(
-        "Overwrite existing configuration files; a replaced file whose content differs is kept "
-        "as <name>.bak (then .bak.1, ...), an unchanged one is left alone"
-    ),
+    help="Replace existing configuration files whose content differs (the old file is kept as <name>.bak)",
 )
 @option(
     "--profile",
@@ -245,20 +247,23 @@ def cli_config_deploy(
     dir_mode: int | None,
     file_mode: int | None,
 ) -> None:
-    r"""Deploy default configuration to system or user directories.
+    """Deploy default configuration to system or user directories.
 
     Creates configuration files in platform-specific locations:
 
-    \b
     - app:  System-wide application config (requires privileges)
     - host: System-wide host config (requires privileges)
     - user: User-specific config (~/.config on Linux)
 
-    By default, existing files are not overwritten. Use --force to overwrite: a replaced
-    file whose content differs is kept as <name>.bak (then .bak.1, ...), and an unchanged
-    one is left alone. Nothing loads a .bak file.
+    Every target gets config.toml plus config.d/40-layered-config.toml,
+    config.d/50-mail.toml, config.d/60-backup.toml and config.d/90-logging.toml
+    (host: hosts/<hostname>.toml plus hosts/<hostname>.d/).
 
-    \b
+    By default, existing files are not overwritten. With --force, a file whose
+    content differs is replaced and the old one is kept as <name>.bak (numbered,
+    <name>.bak.1 and so on, when a backup already exists); a file whose content is
+    unchanged is left as it is, mode included. Nothing loads a .bak file.
+
     Permission options (POSIX only, no-op on Windows):
     - --permissions/--no-permissions: Enable/disable permission setting
     - --dir-mode: Override directory mode (octal, e.g., 750)
@@ -269,6 +274,7 @@ def cli_config_deploy(
     configuration files this deploy does not overwrite and the environment,
     with any --set of that section laid over them; never from .env.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()
@@ -345,13 +351,13 @@ def _execute_deploy(
             "Deployed configuration",
             extra={"targets": tuple(t.value for t in targets), "force": force, "profile": profile},
         )
-        _report_deployment_result(deployed_paths, profile, set_permissions)
+        _report_deployment_result(deployed_paths, profile, set_permissions, force=force)
     except DeployPermissionsError as exc:
         _refuse_permission_settings(exc)
     except PermissionError as exc:
         logger.error("Permission denied when deploying configuration", extra={"error": str(exc)})
-        click.echo(f"\nError: Permission denied. {exc}", err=True)
-        click.echo("Hint: System-wide deployment (--target app/host) may require sudo.", err=True)
+        safe_console.echo(f"\nError: Permission denied. {exc}", err=True)
+        safe_console.echo("Hint: System-wide deployment (--target app/host) may require sudo.", err=True)
         get_current_context().exit(ExitCode.PERMISSION_DENIED)
     except click_exceptions.Exit:
         # click's Exit subclasses RuntimeError. It is a deliberate exit with its own code,
@@ -359,7 +365,7 @@ def _execute_deploy(
         raise
     except Exception as exc:
         logger.error("Failed to deploy configuration", extra={"error": str(exc), "error_type": type(exc).__name__})
-        click.echo(f"\nError: Failed to deploy configuration: {exc}", err=True)
+        safe_console.echo(f"\nError: Failed to deploy configuration: {exc}", err=True)
         get_current_context().exit(ExitCode.GENERAL_ERROR)
 
 
@@ -402,7 +408,7 @@ def _permission_overrides(cli_ctx: CLIContext) -> Mapping[str, object] | None:
     value = section[_PERMISSIONS_KEY]
     if isinstance(value, Mapping):
         return cast("Mapping[str, object]", value)
-    click.echo(
+    safe_console.echo(
         f"Error: {_LAYERED_CONFIG_SECTION}.{_PERMISSIONS_KEY}: must be a table, "
         f"got {type(value).__name__} (source: override)",
         err=True,
@@ -423,13 +429,15 @@ def _refuse_permission_settings(exc: DeployPermissionsError) -> None:
     """
     logger.error("Refused permission settings", extra={"problems": [str(problem) for problem in exc.problems]})
     for problem in exc.problems:
-        click.echo(f"Error: {problem}", err=True)
+        safe_console.echo(f"Error: {problem}", err=True)
     if exc.hint is not None:
-        click.echo(_DEPLOY_ANYWAY_HINT, err=True)
+        safe_console.echo(_DEPLOY_ANYWAY_HINT, err=True)
     get_current_context().exit(ExitCode.CONFIG_ERROR)
 
 
-def _report_deployment_result(deployed_paths: list[Path], profile: str | None, set_permissions: bool | None) -> None:
+def _report_deployment_result(
+    deployed_paths: list[Path], profile: str | None, set_permissions: bool | None, *, force: bool
+) -> None:
     """Report deployment results to the user.
 
     Args:
@@ -438,19 +446,23 @@ def _report_deployment_result(deployed_paths: list[Path], profile: str | None, s
         set_permissions: What the command line said: False for ``--no-permissions``. None
             means the configured ``enabled`` decided, which this command does not read, so
             the report claims nothing about it.
+        force: Whether ``--force`` was given. With it, an empty result means every target
+            file already holds the bundled content, so suggesting ``--force`` would be wrong.
     """
     if deployed_paths:
         profile_msg = f" (profile: {profile})" if profile else ""
         perm_msg = " (permissions not set)" if set_permissions is False else ""
-        click.echo(f"\nConfiguration deployed successfully{profile_msg}{perm_msg}:")
+        safe_console.echo(f"\nConfiguration deployed successfully{profile_msg}{perm_msg}:")
         for path in deployed_paths:
             # ASCII marker on purpose: a non-ASCII glyph here crashes config-deploy with a
             # UnicodeEncodeError on a legacy Windows console codepage (cp1252) even though the
             # files were already written, so exit 1 misreports a deploy that actually succeeded.
-            click.echo(f"  + {path}")
+            safe_console.echo(f"  + {path}")
+    elif force:
+        safe_console.echo("\nNo files were written: every target file is already identical to the bundled one.")
     else:
-        click.echo("\nNo files were created (all target files already exist).")
-        click.echo("Use --force to overwrite existing configuration files.")
+        safe_console.echo("\nNo files were created (all target files already exist).")
+        safe_console.echo("Use --force to overwrite existing configuration files.")
 
 
 @click.command("config-generate-examples", context_settings=CLICK_CONTEXT_SETTINGS)
@@ -467,6 +479,7 @@ def cli_config_generate_examples(ctx: click.Context, destination: str, force: bo
 
     By default, existing files are not overwritten. Use --force to overwrite.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()
@@ -484,14 +497,14 @@ def cli_config_generate_examples(ctx: click.Context, destination: str, force: bo
                 force=force,
             )
             if paths:
-                click.echo(f"\nGenerated {len(paths)} example file(s):")
+                safe_console.echo(f"\nGenerated {len(paths)} example file(s):")
                 for p in paths:
-                    click.echo(f"  {p}")
+                    safe_console.echo(f"  {p}")
             else:
-                click.echo("\nNo files generated (all already exist). Use --force to overwrite.")
+                safe_console.echo("\nNo files generated (all already exist). Use --force to overwrite.")
         except Exception as exc:
             logger.error("Failed to generate examples", extra={"error": str(exc)})
-            click.echo(f"\nError: {exc}", err=True)
+            safe_console.echo(f"\nError: {exc}", err=True)
             ctx.exit(ExitCode.GENERAL_ERROR)
 
 

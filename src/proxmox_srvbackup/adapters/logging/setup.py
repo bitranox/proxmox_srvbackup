@@ -7,6 +7,7 @@ eliminating duplication between module entry (__main__.py) and console script
 Contents:
     * :func:`init_logging` - idempotent logging initialization from the ``[lib_log_rich]``
       section and the ``LOG_*`` variables (the environment, plus the ``LOG_*`` lines of a ``.env``).
+    * :func:`check_logging_config` - refuse another configuration's logging settings without touching the runtime.
     * :class:`InvalidLoggingConfigError` - the ``[lib_log_rich]`` section or a ``LOG_*`` variable
       cannot configure logging.
     * :func:`log_variables_hidden` - every ``LOG_*`` variable out of the environment for a block.
@@ -100,10 +101,12 @@ class InvalidLoggingConfigError(ConfigurationError):
     """lib_log_rich refuses its settings: one ``<key>: <reason>`` in :attr:`problems` per problem.
 
     The settings are the ``[lib_log_rich]`` section plus any ``LOG_*`` variable. A problem the
-    type check of the section finds names the key and never repeats the refused value. A value
-    only lib_log_rich itself refuses, such as an unknown level in ``LOG_CONSOLE_LEVEL`` or in the
-    section's ``console_level``, is reported in lib_log_rich's own words (``lib_log_rich: Unknown
-    log level: 'bogus'``), which may name neither the setting nor where it was set.
+    type check of the section finds names the key and never repeats the refused value; one no
+    single key owns (TLS over UDP for Graylog) reads ``lib_log_rich: <reason>``. A value only
+    lib_log_rich itself refuses, such as an unknown level in ``LOG_CONSOLE_LEVEL`` or in the
+    section's ``console_level``, is reported in lib_log_rich's own words, which name the setting
+    and repeat the value (``lib_log_rich: Invalid runtime settings: console_level: Unknown log
+    level: 'bogus'``).
 
     Attributes:
         problems: One line per refused setting.
@@ -128,15 +131,33 @@ _PROJECT_MARKERS = ("pyproject.toml", ".git")
 
 
 def _problems(error: BaseException) -> list[str]:
-    """One line per problem, from the first pydantic error in ``error``'s chain; never the value."""
+    """One line per problem: key and reason from the first pydantic error in ``error``'s chain.
+
+    A pydantic problem never repeats the refused value; one no single key owns (a model-wide
+    check) has no key and reads ``lib_log_rich: <reason>``. Without a pydantic error in the chain,
+    the line is lib_log_rich's own first line, which may repeat the value
+    (``Invalid runtime settings: console_level: Unknown log level: 'bogus'``).
+    """
     cause: BaseException | None = error
     while cause is not None and not isinstance(cause, ValidationError):
         cause = cause.__cause__ or cause.__context__
     if cause is None:
         # Not a pydantic error (e.g. an unknown level name in a LOG_* variable): lib_log_rich's
-        # own first line, which may name neither the variable nor where it was set.
+        # own first line.
         return [f"lib_log_rich: {str(error).splitlines()[0]}"]
-    return [f"lib_log_rich.{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in cause.errors()]
+    return [f"{_problem_key(item['loc'])}: {item['msg']}" for item in cause.errors()]
+
+
+def _problem_key(loc: tuple[int | str, ...]) -> str:
+    """``lib_log_rich.<key>`` for a problem located at a key, bare ``lib_log_rich`` for a model-wide one.
+
+    Example:
+        >>> _problem_key(("rate_limit",))
+        'lib_log_rich.rate_limit'
+        >>> _problem_key(())
+        'lib_log_rich'
+    """
+    return ".".join(["lib_log_rich", *(str(part) for part in loc)])
 
 
 def _nearest_dotenv() -> Path | None:
@@ -281,9 +302,39 @@ def init_logging(config: Config, *, dotenv_path: str | None = None) -> None:
     lib_log_rich.runtime.attach_std_logging()
 
 
+def check_logging_config(config: Config) -> None:
+    """Refuse ``config``'s logging settings as :func:`init_logging` would, without touching the runtime.
+
+    :func:`init_logging` returns at once while a runtime is running, so a configuration loaded
+    after logging started (``config --profile``'s reload) would never have its logging settings
+    judged. lib_log_rich's ``validate_config`` refuses exactly what its ``init`` refuses, with the
+    same message and the same ``LOG_*`` overrides, and neither reads nor replaces the running
+    runtime, so logging keeps running with the settings it started with, on every thread.
+
+    Args:
+        config: Already-loaded layered configuration object.
+
+    Raises:
+        InvalidLoggingConfigError: As for :func:`init_logging`, with the same problem lines.
+
+    Example:
+        >>> check_logging_config(Config({"lib_log_rich": {"console_level": "info"}}, {}))
+        >>> try:
+        ...     check_logging_config(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
+        ... except InvalidLoggingConfigError as exc:
+        ...     print(exc)
+        lib_log_rich.rate_limit: Input should be a valid tuple
+    """
+    try:
+        lib_log_rich.runtime.validate_config(_build_runtime_config(config))
+    except ValueError as exc:  # pydantic's ValidationError is a ValueError
+        raise InvalidLoggingConfigError(_problems(exc)) from exc
+
+
 __all__ = [
     "InvalidLoggingConfigError",
     "LoggingConfigModel",
+    "check_logging_config",
     "init_logging",
     "log_variables_hidden",
 ]

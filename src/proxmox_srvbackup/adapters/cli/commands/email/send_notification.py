@@ -17,9 +17,9 @@ from ...constants import CLICK_CONTEXT_SETTINGS
 from ...context import get_cli_context
 from ...typed_click import option
 from ._common import (
+    EmailConfigOverrides,
     apply_validated_overrides,
     execute_with_email_error_handling,
-    filter_sentinels,
     handle_validation_error,
     load_and_validate_email_config,
     smtp_config_options,
@@ -53,11 +53,11 @@ def cli_send_notification(
     smtp_password: str | None,
     use_starttls: bool | None,
     timeout: float | None,
-    raise_on_missing_attachments: bool | None,
     raise_on_invalid_recipient: bool | None,
 ) -> None:
     """Send a simple plain-text notification email.
 
+    \f
     Example:
         >>> from click.testing import CliRunner
         >>> runner = CliRunner()
@@ -70,13 +70,12 @@ def cli_send_notification(
 
     with lib_log_rich.runtime.bind(job_id="cli-send-notification", extra=extra):
         email_config = load_and_validate_email_config(config, cli_ctx.services.load_email_config_from_dict)
-        overrides = filter_sentinels(
+        overrides = EmailConfigOverrides.from_cli_options(
             smtp_hosts=smtp_hosts,
             smtp_username=smtp_username,
             smtp_password=smtp_password,
             use_starttls=use_starttls,
             timeout=timeout,
-            raise_on_missing_attachments=raise_on_missing_attachments,
             raise_on_invalid_recipient=raise_on_invalid_recipient,
         )
         try:

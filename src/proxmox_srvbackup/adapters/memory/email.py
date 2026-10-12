@@ -7,20 +7,20 @@ Contents:
     * :class:`CapturedEmail` - Typed record for captured send_email calls.
     * :class:`CapturedNotification` - Typed record for captured send_notification calls.
     * :class:`EmailSpy` - Captures email calls for test assertions.
-    * :func:`load_email_config_from_dict_in_memory` - In-memory config loader.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from ..email.sender import EmailConfig
 from ..email.validation import validate_recipients
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
     from pathlib import Path
+
+    from ..email.sender import EmailConfig
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,8 +61,9 @@ class EmailSpy:
         raise_exception: When set, send operations raise this exception.
 
     Example:
+        >>> from proxmox_srvbackup.adapters.email.sender import EmailConfig
         >>> spy = EmailSpy()
-        >>> config = EmailConfig(smtp_hosts=["smtp.test.com:587"])
+        >>> config = EmailConfig(smtphosts=["smtp.test.com:587"])
         >>> spy.send_email(config=config, recipients="test@example.com", subject="Hi", body="Hello")
         True
         >>> len(spy.sent_emails)
@@ -165,17 +166,8 @@ class EmailSpy:
         return not self.should_fail
 
 
-def load_email_config_from_dict_in_memory(
-    config_dict: Mapping[str, Any],
-) -> EmailConfig:
-    """Parse email config from dict using the real Pydantic model."""
-    email_raw = config_dict.get("email", {})
-    return EmailConfig.model_validate(email_raw if email_raw else {})
-
-
 __all__ = [
     "CapturedEmail",
     "CapturedNotification",
     "EmailSpy",
-    "load_email_config_from_dict_in_memory",
 ]

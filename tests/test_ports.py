@@ -12,17 +12,19 @@ from typing import TYPE_CHECKING
 import pytest
 from lib_layered_config import Config
 
+from proxmox_srvbackup.adapters.email.config import load_email_config_from_dict
 from proxmox_srvbackup.adapters.email.sender import EmailConfig
 from proxmox_srvbackup.adapters.memory import (
     EmailSpy,
+    check_logging_config_in_memory,
     get_config_in_memory,
     get_default_config_path_in_memory,
     init_logging_in_memory,
-    load_email_config_from_dict_in_memory,
 )
 
 if TYPE_CHECKING:
     from proxmox_srvbackup.application.ports import (
+        CheckLoggingConfig,
         GetConfig,
         GetDefaultConfigPath,
         InitLogging,
@@ -63,14 +65,20 @@ def send_notification_impl() -> SendNotification:
 
 @pytest.fixture
 def load_email_config_impl() -> LoadEmailConfigFromDict:
-    """Provide in-memory LoadEmailConfigFromDict implementation."""
-    return load_email_config_from_dict_in_memory
+    """Provide the LoadEmailConfigFromDict the testing composition wires: the real translation."""
+    return load_email_config_from_dict
 
 
 @pytest.fixture
 def init_logging_impl() -> InitLogging:
     """Provide in-memory InitLogging implementation."""
     return init_logging_in_memory
+
+
+@pytest.fixture
+def check_logging_config_impl() -> CheckLoggingConfig:
+    """Provide in-memory CheckLoggingConfig implementation."""
+    return check_logging_config_in_memory
 
 
 @pytest.mark.os_agnostic
@@ -92,7 +100,7 @@ def test_get_default_config_path_returns_toml_path(get_default_config_path_impl:
 @pytest.mark.os_agnostic
 def test_send_email_returns_bool_with_valid_config(send_email_impl: SendEmail) -> None:
     """SendEmail must return a bool when called with a valid EmailConfig."""
-    config = EmailConfig(smtp_hosts=["smtp.test.com:587"], from_address="a@b.com")
+    config = EmailConfig(smtphosts=["smtp.test.com:587"], from_address="a@b.com")
     result = send_email_impl(
         config=config,
         recipients=["test@example.com"],
@@ -105,7 +113,7 @@ def test_send_email_returns_bool_with_valid_config(send_email_impl: SendEmail) -
 @pytest.mark.os_agnostic
 def test_send_notification_returns_bool_with_valid_config(send_notification_impl: SendNotification) -> None:
     """SendNotification must return a bool when called with a valid EmailConfig."""
-    config = EmailConfig(smtp_hosts=["smtp.test.com:587"], from_address="a@b.com")
+    config = EmailConfig(smtphosts=["smtp.test.com:587"], from_address="a@b.com")
     result = send_notification_impl(
         config=config,
         recipients=["test@example.com"],
@@ -141,6 +149,12 @@ def test_init_logging_does_not_raise(init_logging_impl: InitLogging) -> None:
     """InitLogging must not raise when called with a Config."""
     config = Config({}, {})
     init_logging_impl(config)
+
+
+@pytest.mark.os_agnostic
+def test_check_logging_config_in_memory_refuses_nothing(check_logging_config_impl: CheckLoggingConfig) -> None:
+    """The test runtime ignores the configuration, so no logging section can break it."""
+    check_logging_config_impl(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
 
 
 # ======================== Composition Wiring Tests ========================

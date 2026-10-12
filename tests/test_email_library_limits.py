@@ -22,7 +22,7 @@ from proxmox_srvbackup.adapters.email.sender import EmailConfig, send_email
 if TYPE_CHECKING:
     from pathlib import Path
 
-VALID = EmailConfig(smtp_hosts=["smtp.test.com:587"], from_address="app@example.com")
+VALID = EmailConfig(smtphosts=["smtp.test.com:587"], from_address="app@example.com")
 
 #: The library's own per-send limits (ConfMail.recipient_max_count, attachment_max_count).
 LIBRARY_RECIPIENT_LIMIT = 1000
@@ -78,8 +78,12 @@ def test_a_windows_or_posix_executable_is_refused_by_default_on_every_platform(t
 @pytest.mark.os_agnostic
 @pytest.mark.parametrize("host", ["smtp.example.com:+25", "smtp.example.com:2_5"])
 def test_an_smtp_port_that_is_not_plain_digits_is_refused_with_one_line(host: str) -> None:
-    """A port Python's int() would read is still refused, naming the host, not the input of other keys."""
-    with pytest.raises(ValidationError) as refused:
-        EmailConfig(smtp_hosts=[host])
+    """A port Python's int() would read is still refused in one line naming the file key.
 
-    assert describe_validation_error(refused.value) == [f'email: invalid smtp port in "{host}"']
+    btx_lib_mail redacts the refused value itself (a host entry can carry credentials), so the
+    line names ``email.smtp_hosts`` and never the host.
+    """
+    with pytest.raises(ValidationError) as refused:
+        EmailConfig(smtphosts=[host])
+
+    assert describe_validation_error(refused.value) == ['email.smtp_hosts: invalid smtp port in "[redacted]"']

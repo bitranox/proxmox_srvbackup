@@ -121,7 +121,7 @@ pip install --user .
 # install pipx via pip
 python -m pip install pipx
 # optional install pipx via apt
-sudo apt install python-pipx
+sudo apt install pipx
 # install via pipx from PyPI
 pipx install proxmox_srvbackup
 # optional install via pipx from GitHub

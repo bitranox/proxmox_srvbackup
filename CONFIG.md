@@ -22,7 +22,7 @@ Configuration is loaded and merged in the following order (lowest to highest pre
 | 2        | **app**      | System-wide settings for all machines           |
 | 3        | **host**     | Machine-specific overrides                      |
 | 4        | **user**     | User's personal settings                        |
-| 5        | **.env**     | Project directory dotenv file                   |
+| 5        | **.env**     | First `.env` found upward, else per-user `.env` |
 | 6        | **env vars** | Environment variables                           |
 | 7        | **CLI**      | Command-line `--set` flags (highest priority)   |
 
@@ -40,14 +40,21 @@ Configuration is loaded and merged in the following order (lowest to highest pre
 | app      | `/etc/xdg/{slug}/config.toml`           | `/Library/Application Support/{vendor}/{app}/config.toml`           | `C:\ProgramData\{vendor}\{app}\config.toml`           |
 | host     | `/etc/xdg/{slug}/hosts/{hostname}.toml` | `/Library/Application Support/{vendor}/{app}/hosts/{hostname}.toml` | `C:\ProgramData\{vendor}\{app}\hosts\{hostname}.toml` |
 | user     | `~/.config/{slug}/config.toml`          | `~/Library/Application Support/{vendor}/{app}/config.toml`          | `%APPDATA%\{vendor}\{app}\config.toml`                |
+| .env     | `~/.config/{slug}/.env` (fallback)      | `~/Library/Application Support/{vendor}/{app}/.env` (fallback)      | `%APPDATA%\{vendor}\{app}\.env` (fallback)            |
+
+Every layer reads `config.toml` first and then the files in the `config.d/` directory next to it
+(for the host layer: `hosts/{hostname}.d/`), in lexical order; a `config.d/` file may be TOML, YAML
+or JSON. On Linux the app and host layers are read from `/etc/xdg/{slug}/` and then from
+`/etc/{slug}/`, and `$XDG_CONFIG_HOME` replaces `~/.config` when it is set. The `.env` row is a
+fallback: it is read only when no `.env` is found in the working directory or one of its parents.
 
 ### Path Placeholders
 
 | Placeholder  | Linux               | macOS / Windows     |
 |--------------|---------------------|---------------------|
-| `{slug}`     | `proxmox-srvbackup` | —                   |
-| `{vendor}`   | —                   | `bitranox`          |
-| `{app}`      | —                   | `proxmox_srvbackup` |
+| `{slug}`     | `proxmox-srvbackup` | -                   |
+| `{vendor}`   | -                   | `bitranox`          |
+| `{app}`      | -                   | `proxmox_srvbackup` |
 | `{hostname}` | System hostname     | System hostname     |
 
 ### Concrete Examples
@@ -56,6 +63,12 @@ Configuration is loaded and merged in the following order (lowest to highest pre
 - User config: `~/.config/proxmox-srvbackup/config.toml`
 - App config: `/etc/xdg/proxmox-srvbackup/config.toml`
 - Host config: `/etc/xdg/proxmox-srvbackup/hosts/myserver.toml`
+
+**macOS:**
+- User config: `~/Library/Application Support/bitranox/proxmox_srvbackup/config.toml`
+
+**Windows:**
+- User config: `%APPDATA%\bitranox\proxmox_srvbackup\config.toml`
 
 ---
 
@@ -96,7 +109,7 @@ proxmox-srvbackup --traceback config-deploy --target user
 
 ### View Configuration
 
-Display the merged configuration from all sources (defaults → app → host → user → .env → env vars).
+Display the merged configuration from all sources (defaults -> app -> host -> user -> .env -> env vars).
 
 #### Options Reference
 
@@ -131,15 +144,15 @@ Deploy bundled default configuration to platform-specific directories.
 
 #### Options Reference
 
-| Option             | Required | Description                                                                                                                                                                                                                        |
-|--------------------|:--------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--target`         | Yes      | Target layer: `app`, `host`, or `user`. Can be specified multiple times.                                                                                                                                                           |
-| `--force`          | No       | Overwrite existing configuration files. Without this, existing files are skipped. A replaced file whose content differs is kept as `<name>.bak` (then `.bak.1`, ...); an unchanged one is left alone. Nothing loads a `.bak` file. |
-| `--profile NAME`   | No       | Deploy to a profile-specific subdirectory (e.g., `profile/production/`).                                                                                                                                                           |
-| `--permissions`    | No       | Set Unix permissions even when the configured `enabled` is false.                                                                                                                                                                  |
-| `--no-permissions` | No       | Disable permission setting; use system umask instead. Not combinable with a mode option.                                                                                                                                           |
-| `--dir-mode MODE`  | No       | Override directory permissions (octal: `750` or `0o750`).                                                                                                                                                                          |
-| `--file-mode MODE` | No       | Override file permissions (octal: `640` or `0o640`).                                                                                                                                                                               |
+| Option             | Required | Description                                                                                                                   |
+|--------------------|:--------:|-------------------------------------------------------------------------------------------------------------------------------|
+| `--target`         | Yes      | Target layer: `app`, `host`, or `user`. Can be specified multiple times.                                                      |
+| `--force`          | No       | Replace existing files whose content differs; the old file is kept as `<name>.bak`. Without this, existing files are skipped. |
+| `--profile NAME`   | No       | Deploy to a profile-specific subdirectory (e.g., `profile/production/`).                                                      |
+| `--permissions`    | No       | Set Unix permissions even when the configured `enabled` is false.                                                             |
+| `--no-permissions` | No       | Disable permission setting; use system umask instead. Not combinable with a mode option.                                      |
+| `--dir-mode MODE`  | No       | Override directory permissions (octal: `750` or `0o750`).                                                                     |
+| `--file-mode MODE` | No       | Override file permissions (octal: `640` or `0o640`).                                                                          |
 
 > **Best practice:** Do not edit the deployed default config files directly. Instead,
 > create a `99-myconfig.toml` in the same directory to override only the settings you
@@ -171,6 +184,14 @@ proxmox-srvbackup config-deploy --target user --profile production
 # Deploy production profile and overwrite if exists
 proxmox-srvbackup config-deploy --target user --profile production --force
 ```
+
+Every target receives `config.toml` plus `config.d/40-layered-config.toml`, `config.d/50-mail.toml`,
+`config.d/60-backup.toml` and `config.d/90-logging.toml` (the host target writes `hosts/{hostname}.toml` and
+`hosts/{hostname}.d/`). With `--force`, a file whose content differs from the bundled one is
+replaced and the old file is kept as `<name>.bak` (numbered, `<name>.bak.1` and so on, when a
+backup already exists); a file whose content is already identical is left as it is, mode
+included. When nothing differs, `config-deploy --force` writes nothing and says so. Nothing loads
+a `.bak` file.
 
 #### Deploying for Other Users
 
@@ -334,7 +355,7 @@ Each file contains commented documentation explaining available options and thei
 ### Runtime Overrides
 
 Use `--set` to override configuration values without modifying files. This option:
-- Has the **highest precedence** (overrides all other sources including environment variables)
+- Has the **highest precedence** among the configuration layers; for logging, lib_log_rich's own `LOG_*` variables still override it
 - Can be **repeated** to set multiple values
 - Must appear **before** the command name
 
@@ -400,15 +421,15 @@ Profile names are validated for security and cross-platform compatibility:
 
 ### Which Layers Are Affected?
 
-| Layer    | Affected by Profile? | Notes                               |
-|----------|:--------------------:|-------------------------------------|
-| defaults | No                   | Always loaded from package          |
-| app      | Yes                  | Uses `profile/<name>/` subdirectory |
-| host     | Yes                  | Uses `profile/<name>/` subdirectory |
-| user     | Yes                  | Uses `profile/<name>/` subdirectory |
-| .env     | No                   | Project directory                   |
-| env vars | No                   | Environment                         |
-| CLI      | No                   | Command line                        |
+| Layer    | Affected by Profile? | Notes                                                                        |
+|----------|:--------------------:|------------------------------------------------------------------------------|
+| defaults | No                   | Always loaded from package                                                   |
+| app      | Yes                  | Uses `profile/<name>/` subdirectory                                          |
+| host     | Yes                  | Uses `profile/<name>/` subdirectory                                          |
+| user     | Yes                  | Uses `profile/<name>/` subdirectory                                          |
+| .env     | Fallback only        | The per-user fallback `.env` uses `profile/<name>/`; one found upward is not |
+| env vars | No                   | Environment                                                                  |
+| CLI      | No                   | Command line                                                                 |
 
 ### Profile Path Examples
 
@@ -452,8 +473,9 @@ LOG_ENABLE_GRAYLOG=true LOG_GRAYLOG_ENDPOINT="logs.example.com:12201" proxmox-sr
 A value lib_log_rich refuses (`LOG_CONSOLE_LEVEL=bogus`, in the environment or in the `.env`
 logging reads) is a configuration error, like a refused `[lib_log_rich]` value: `backup`,
 `setup-keys`, `config`, `send-email` and `send-notification` exit 78 with lib_log_rich's own
-message (`Error: lib_log_rich: Unknown log level: 'bogus'`), and the other commands run, logging
-with its defaults and without any `LOG_*` variable.
+message (`Error: lib_log_rich: Invalid runtime settings: LOG_CONSOLE_LEVEL: Unknown log level:
+'bogus'`); `logdemo` exits 22 with the same reason; the other commands run, logging with its
+defaults and without any `LOG_*` variable.
 
 ### Method 2: Application-Prefixed Variables
 
@@ -465,8 +487,8 @@ PROXMOX_SRVBACKUP___EMAIL__SMTP_HOSTS='["smtp.example.com:587"]' proxmox-srvback
 ```
 
 **Separator reference:**
-- `___` (triple underscore) — separates prefix from section
-- `__` (double underscore) — separates section from key
+- `___` (triple underscore) - separates prefix from section
+- `__` (double underscore) - separates section from key
 
 ---
 
@@ -482,6 +504,11 @@ LOG_ENABLE_GRAYLOG=false
 ```
 
 By default, the application searches upward from the current directory to discover `.env` files.
+
+Logging reads the `LOG_*` lines of the same `.env` (the `--env-file` when one is given, otherwise the
+nearest `.env` up to the project root) and copies only those into the environment, never over a
+variable that is already set. No other `.env` line reaches the environment, so a `.env` cannot act
+as the environment layer for a later configuration load.
 
 To load a specific `.env` file instead, use `--env-file`:
 
@@ -503,33 +530,42 @@ The `defaultconfig.toml` and files in `defaultconfig.d/` (bundled with the packa
 
 ## Customization Best Practices
 
-**Do NOT modify deployed configuration files directly.** These files may be overwritten during package updates.
+**Do NOT modify deployed configuration files directly.** `config-deploy --force` replaces them
+(keeping the old file as `<name>.bak`).
 
-Instead, create your own override files in the appropriate layer directory using a high-numbered prefix:
+Instead, create your own override file in the layer's `config.d/` directory using a high-numbered
+prefix:
 
 ```bash
 # User-level customization (Linux)
-~/.config/proxmox-srvbackup/999-myconfig.toml
+~/.config/proxmox-srvbackup/config.d/999-myconfig.toml
 
 # User-level customization (macOS)
-~/Library/Application Support/bitranox/proxmox_srvbackup/999-myconfig.toml
+~/Library/Application Support/bitranox/proxmox_srvbackup/config.d/999-myconfig.toml
 
 # User-level customization (Windows)
-%APPDATA%\bitranox\proxmox_srvbackup\999-myconfig.toml
+%APPDATA%\bitranox\proxmox_srvbackup\config.d\999-myconfig.toml
 
 # System-wide customization (Linux)
-/etc/xdg/proxmox-srvbackup/999-myconfig.toml
+/etc/xdg/proxmox-srvbackup/config.d/999-myconfig.toml
+
+# Host-specific customization (Linux)
+/etc/xdg/proxmox-srvbackup/hosts/{hostname}.d/999-myconfig.toml
 ```
 
+A file placed directly next to `config.toml` (outside `config.d/`) is never read: each layer reads
+only `config.toml` plus its `config.d/` files.
+
 **Why this works:**
-- Files in each layer directory are loaded in alphabetical order
-- Higher-numbered files (e.g., `999-`) load last and override earlier values
-- Your custom file won't be touched by updates that regenerate `config.toml`
+- Files in each layer's `config.d/` directory are loaded in lexical order after `config.toml`
+- Higher-numbered files (e.g., `999-`) load last and override earlier values, including the
+  deployed `40-`, `50-`, `60-` and `90-` files
+- `config-deploy` never writes a `999-myconfig.toml`, so a redeploy leaves your file alone
 
 **Example `999-myconfig.toml`:**
 
 ```toml
-# My custom overrides - survives package updates
+# My custom overrides - survives a redeploy
 
 [lib_log_rich]
 console_level = "DEBUG"

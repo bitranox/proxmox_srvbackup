@@ -15,9 +15,11 @@ The end-to-end tests run the real CLI in a subprocess with every configuration l
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import lib_log_rich.runtime
@@ -25,11 +27,14 @@ import pytest
 from lib_layered_config import Config
 
 from proxmox_srvbackup import __init__conf__
-from proxmox_srvbackup.adapters.logging.setup import InvalidLoggingConfigError, init_logging
+from proxmox_srvbackup.adapters.logging.setup import (
+    InvalidLoggingConfigError,
+    check_logging_config,
+    init_logging,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from pathlib import Path
 
 PREFIX = __init__conf__.LAYEREDCONF_SLUG.upper().replace("-", "_")
 _HOMES = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
@@ -204,6 +209,119 @@ def test_an_invalid_logging_section_does_not_block_the_deploy_that_replaces_it(t
     )
 
     assert result.returncode == 0, result.stderr
+
+
+# ------------------------------------------------------------------ config --profile reloads, and checks logging too
+
+#: One refused setting of each kind lib_log_rich has: the section's type check, its own range
+#: check, a ``LOG_*`` value its settings resolution refuses, and the values only starting the
+#: runtime refuses - a level name (in the section or a ``LOG_*`` variable), a scrub pattern, a
+#: console format preset and a console style key.
+_REFUSED_LOGGING = {
+    "type": {f"{PREFIX}___LIB_LOG_RICH__RATE_LIMIT": "100:60"},
+    "range": {f"{PREFIX}___LIB_LOG_RICH__QUEUE_MAXSIZE": "0"},
+    "settings-variable": {"LOG_RATE_LIMIT": "bogus"},
+    "section-level": {f"{PREFIX}___LIB_LOG_RICH__CONSOLE_LEVEL": "bogus"},
+    "log-variable": {"LOG_CONSOLE_LEVEL": "bogus"},
+    "scrub-pattern": {"LOG_SCRUB_PATTERNS": "token=("},
+    "console-preset": {"LOG_CONSOLE_FORMAT_PRESET": "bogus"},
+    "console-style": {"LOG_CONSOLE_STYLES": "bogus=red"},
+}
+
+
+def _error_lines(result: subprocess.CompletedProcess[str]) -> list[str]:
+    return [line for line in result.stderr.splitlines() if line.startswith("Error:")]
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("env", _REFUSED_LOGGING.values(), ids=_REFUSED_LOGGING.keys())
+def test_config_with_a_profile_refuses_a_logging_setting_like_config_without_one(
+    tmp_path: Path, env: dict[str, str]
+) -> None:
+    plain = _run(tmp_path, "config", env=env)
+    reloaded = _run(tmp_path, "config", "--profile", "production", env=env)
+
+    # Premise: plain config refuses this setting with one line per problem.
+    assert plain.returncode == 78, plain.stderr
+    assert _error_lines(plain), plain.stderr
+    assert reloaded.returncode == 78, reloaded.stderr
+    assert _error_lines(reloaded) == _error_lines(plain)
+
+
+@pytest.mark.os_agnostic
+def test_a_logging_section_refused_only_in_the_profile_file_refuses_config_with_that_profile(tmp_path: Path) -> None:
+    # The user layer lives in a different place on each OS; the deploy writes it there and says where.
+    deployed = _run(tmp_path, "config-deploy", "--target", "user", "--profile", "broken")
+    assert deployed.returncode == 0, deployed.stderr
+    written = [line.strip()[2:] for line in deployed.stdout.splitlines() if line.strip().startswith("+ ")]
+    profile_files = [Path(path) for path in written if Path(path).name == "config.toml"]
+    assert len(profile_files) == 1, deployed.stdout
+    # config.d merges after config.toml, and the deployed 90-logging.toml sets rate_limit itself.
+    (profile_files[0].parent / "config.d" / "99-refused.toml").write_text(
+        '[lib_log_rich]\nrate_limit = "100:60"\n', encoding="utf-8"
+    )
+
+    plain = _run(tmp_path, "config")
+    reloaded = _run(tmp_path, "config", "--profile", "broken")
+
+    assert plain.returncode == 0, plain.stderr
+    assert reloaded.returncode == 78, reloaded.stderr
+    errors = _error_lines(reloaded)
+    assert len(errors) == 1, reloaded.stderr
+    assert "lib_log_rich.rate_limit" in errors[0]
+    assert "100:60" not in reloaded.stderr
+
+
+@pytest.mark.os_agnostic
+def test_checking_logging_refuses_a_setting_although_logging_already_runs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``init_logging`` returns at once on a running runtime; the check must judge the new settings."""
+    init_logging(Config({}, {}))
+    # Premise: logging runs, so a plain init_logging would no longer check anything.
+    running = lib_log_rich.runtime.current_runtime()
+    monkeypatch.setenv("LOG_SCRUB_PATTERNS", "token=(")
+
+    with pytest.raises(InvalidLoggingConfigError, match="Invalid scrub pattern"):
+        check_logging_config(Config({}, {}))
+
+    assert lib_log_rich.runtime.current_runtime() is running
+    handlers = [h for h in logging.getLogger().handlers if isinstance(h, lib_log_rich.runtime.StdlibLoggingHandler)]
+    assert len(handlers) == 1
+
+
+@pytest.mark.os_agnostic
+def test_checking_a_valid_logging_section_leaves_the_running_runtime_alone() -> None:
+    """The check never stops or replaces the runtime, so no other thread loses its logging."""
+    init_logging(Config({}, {}))
+    running = lib_log_rich.runtime.current_runtime()
+
+    check_logging_config(Config({"lib_log_rich": {"console_level": "debug"}}, {}))
+
+    assert lib_log_rich.runtime.current_runtime() is running
+
+
+def _graylog_section(*, tls: bool) -> dict[str, object]:
+    # The endpoint as a TOML file writes it: a [host, port] list, which RuntimeConfig accepts.
+    return {
+        "enable_graylog": True,
+        "graylog_endpoint": ["graylog.invalid", 12201],
+        "graylog_protocol": "udp",
+        "graylog_tls": tls,
+    }
+
+
+@pytest.mark.os_agnostic
+def test_checking_logging_refuses_tls_over_udp_for_graylog() -> None:
+    """A refusal no single field owns (TLS with UDP) reaches the check, as one ``lib_log_rich: <reason>`` line."""
+    with pytest.raises(InvalidLoggingConfigError, match="TLS is only supported for TCP Graylog transport") as caught:
+        check_logging_config(Config({"lib_log_rich": _graylog_section(tls=True)}, {}))
+
+    assert caught.value.problems[0].startswith("lib_log_rich: ")
+
+
+@pytest.mark.os_agnostic
+def test_checking_logging_accepts_graylog_over_udp_without_tls() -> None:
+    """Control: the same section without TLS is valid, so the refusal above is the TLS one."""
+    check_logging_config(Config({"lib_log_rich": _graylog_section(tls=False)}, {}))
 
 
 # ------------------------------------------------------------------ a refused setting still leaves logging running

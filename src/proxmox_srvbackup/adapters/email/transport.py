@@ -24,54 +24,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Keywords that may indicate sensitive data in exception messages
-_SENSITIVE_KEYWORDS = frozenset(
-    {
-        "api_key",
-        "auth",
-        "bearer",
-        "credential",
-        "key",
-        "login",
-        "password",
-        "secret",
-        "token",
-    }
-)
-
-
-def _sanitize_exception_message(exc: Exception) -> str:
-    """Sanitize exception message to prevent credential exposure.
-
-    Returns a generic message when the original exception text contains
-    keywords suggesting sensitive data (passwords, credentials, tokens).
-    The full exception is preserved in the chain for DEBUG-level logging.
-
-    Args:
-        exc: The exception to sanitize.
-
-    Returns:
-        Sanitized message safe for user display.
-
-    Example:
-        >>> class FakeExc(Exception): pass
-        >>> _sanitize_exception_message(FakeExc("Connection failed"))
-        'Connection failed'
-        >>> _sanitize_exception_message(FakeExc("Auth password rejected"))
-        'Email delivery failed. Check SMTP configuration.'
-    """
-    message = str(exc).lower()
-    if any(keyword in message for keyword in _SENSITIVE_KEYWORDS):
-        return "Email delivery failed. Check SMTP configuration."
-    return str(exc)
-
-
-def _build_credentials(config: EmailConfig) -> tuple[str, str] | None:
-    """Return (username, password) tuple when both are set, else None."""
-    if config.smtp_username is not None and config.smtp_password is not None:
-        return (config.smtp_username, config.smtp_password)
-    return None
-
 
 def _resolve_sender(config: EmailConfig, from_address: str | None) -> str:
     """Determine the sender address from override or config default.
@@ -130,7 +82,7 @@ def _validate_smtp_hosts(config: EmailConfig) -> None:
     Raises:
         ConfigurationError: When smtp_hosts is empty.
     """
-    if not config.smtp_hosts:
+    if not config.smtphosts:
         raise ConfigurationError("No SMTP hosts configured (email.smtp_hosts is empty)")
 
 
@@ -170,14 +122,16 @@ def send_email(
 
     Raises:
         ValueError: No from_address configured and no override provided,
-            or no recipients configured and no override provided, or more than
-            btx_lib_mail's 1000 recipients or 100 attachments for one send
-            (refused before any delivery).
+            or no recipients configured and no override provided, or more
+            recipients or attachments than config.recipient_max_count or
+            config.attachment_max_count allow (refused before any delivery).
         ConfigurationError: No SMTP hosts configured.
-        FileNotFoundError: Required attachment missing and config.raise_on_missing_attachments
-            is True.
-        AttachmentSecurityError: An attachment breaks the attachment security settings and
-            config.attachment_raise_on_security_violation is True.
+        FileNotFoundError: Required attachment missing or unreadable and
+            config.raise_on_missing_attachments is True.
+        AttachmentSecurityError: btx_lib_mail's security checks refused an
+            attachment (blocked extension or directory, symlink, size, ...)
+            and config.attachment_raise_on_security_violation is True.
+            Raised before anything is delivered.
         DeliveryError: All SMTP hosts failed for a recipient.
 
     Side Effects:
@@ -206,25 +160,13 @@ def send_email(
             mail_subject=subject,
             mail_body=body,
             mail_body_html=body_html,
-            smtphosts=config.smtp_hosts,
             attachment_file_paths=attachments,
-            credentials=_build_credentials(config),
-            use_starttls=config.use_starttls,
-            timeout=config.timeout,
-            attachment_allowed_extensions=config.attachment_allowed_extensions,
-            attachment_blocked_extensions=config.attachment_blocked_extensions,
-            attachment_allowed_directories=config.attachment_allowed_directories,
-            attachment_blocked_directories=config.attachment_blocked_directories,
-            attachment_max_size_bytes=config.attachment_max_size_bytes,
-            attachment_allow_symlinks=config.attachment_allow_symlinks,
-            attachment_raise_on_security_violation=config.attachment_raise_on_security_violation,
-            raise_on_missing_attachments=config.raise_on_missing_attachments,
-            raise_on_invalid_recipient=config.raise_on_invalid_recipient,
+            config=config,
             transport=transport,
         )
     except RuntimeError as exc:
         logger.debug("SMTP delivery failed", exc_info=True)
-        raise DeliveryError(_sanitize_exception_message(exc)) from exc
+        raise DeliveryError(str(exc)) from exc
 
     if result:
         logger.info(

@@ -63,4 +63,18 @@ def init_logging_in_memory(config: Config, *, dotenv_path: str | None = None) ->
         )
 
 
-__all__ = ["init_logging_in_memory"]
+def check_logging_config_in_memory(config: Config) -> None:
+    """Refuse nothing: the test runtime ignores the configuration, so no setting in it can break it.
+
+    :func:`init_logging_in_memory` starts a fixed runtime whatever the configuration holds.
+
+    Args:
+        config: Unused; the parameter exists to satisfy the ``CheckLoggingConfig`` protocol.
+
+    Example:
+        >>> from lib_layered_config import Config
+        >>> check_logging_config_in_memory(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
+    """
+
+
+__all__ = ["check_logging_config_in_memory", "init_logging_in_memory"]

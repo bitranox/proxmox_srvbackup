@@ -376,7 +376,7 @@ def test_when_send_email_receives_smtp_host_override_it_uses_it(
     )
 
     assert result.exit_code == 0
-    assert ctx.spy.sent_emails[0].config.smtp_hosts == ["smtp.override.com:465"]
+    assert ctx.spy.sent_emails[0].config.smtphosts == ["smtp.override.com:465"]
 
 
 @pytest.mark.os_agnostic
@@ -409,7 +409,7 @@ def test_when_send_email_receives_timeout_override_it_uses_it(
     )
 
     assert result.exit_code == 0
-    assert ctx.spy.sent_emails[0].config.timeout == 60.0
+    assert ctx.spy.sent_emails[0].config.smtp_timeout == 60.0
 
 
 @pytest.mark.os_agnostic
@@ -441,7 +441,7 @@ def test_when_send_email_receives_no_use_starttls_override_it_applies_it(
     )
 
     assert result.exit_code == 0
-    assert ctx.spy.sent_emails[0].config.use_starttls is False
+    assert ctx.spy.sent_emails[0].config.smtp_use_starttls is False
 
 
 @pytest.mark.os_agnostic
@@ -477,7 +477,9 @@ def test_when_send_email_receives_credential_overrides_it_uses_them(
 
     assert result.exit_code == 0
     assert ctx.spy.sent_emails[0].config.smtp_username == "myuser"
-    assert ctx.spy.sent_emails[0].config.smtp_password == "mypass"
+    password = ctx.spy.sent_emails[0].config.smtp_password
+    assert password is not None
+    assert password.get_secret_value() == "mypass"
 
 
 @pytest.mark.os_agnostic
@@ -543,7 +545,46 @@ def test_when_send_notification_receives_smtp_host_override_it_uses_it(
     )
 
     assert result.exit_code == 0
-    assert ctx.spy.sent_notifications[0].config.smtp_hosts == ["smtp.override.com:465"]
+    assert ctx.spy.sent_notifications[0].config.smtphosts == ["smtp.override.com:465"]
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("flag", ["--raise-on-missing-attachments", "--no-raise-on-missing-attachments"])
+def test_when_send_notification_receives_a_missing_attachments_flag_it_refuses_the_option(
+    cli_runner: CliRunner,
+    email_cli_context: Callable[[dict[str, Any]], EmailCliContext],
+    flag: str,
+) -> None:
+    """send-notification takes no attachments, so it offers no missing-attachment switch."""
+    ctx = email_cli_context({"smtp_hosts": ["smtp.test.com:587"], "from_address": "alerts@test.com"})
+
+    result: Result = cli_runner.invoke(
+        cli_mod.cli,
+        ["send-notification", "--to", "admin@test.com", "--subject", "Alert", "--message", "Hi", flag],
+        obj=ctx.factory,
+    )
+
+    assert result.exit_code == 2
+    assert "No such option" in result.output
+    assert ctx.spy.sent_notifications == []
+
+
+@pytest.mark.os_agnostic
+def test_when_send_email_receives_no_raise_on_missing_attachments_it_overrides_the_config(
+    cli_runner: CliRunner,
+    email_cli_context: Callable[[dict[str, Any]], EmailCliContext],
+) -> None:
+    """send-email keeps the switch: --no-raise-on-missing-attachments reaches the delivery config."""
+    ctx = email_cli_context({"smtp_hosts": ["smtp.test.com:587"], "from_address": "sender@test.com"})
+
+    result: Result = cli_runner.invoke(
+        cli_mod.cli,
+        ["send-email", "--to", "r@test.com", "--subject", "S", "--body", "B", "--no-raise-on-missing-attachments"],
+        obj=ctx.factory,
+    )
+
+    assert result.exit_code == 0
+    assert ctx.spy.sent_emails[0].config.raise_on_missing_attachments is False
 
 
 # ======================== Attachment path validation ========================
