@@ -6,6 +6,8 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+## [1.10.1] 2026-10-12 19:08:14
+
 ### Fixed
 - **An all-digit value in a text setting no longer stops startup or breaks a backup.**
   lib_layered_config reads an unquoted `.env` or environment value that spells a number

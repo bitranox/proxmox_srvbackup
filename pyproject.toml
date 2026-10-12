@@ -1,6 +1,6 @@
 [project]
 name = "proxmox_srvbackup"
-version = "1.10.0"
+version = "1.10.1"
 description = "Pull-based Proxmox server backup tool — configuration and ZFS rpool snapshots"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -280,3 +280,7 @@ ignore-vulns = []
 # bashate style settings for .sh files (E003 excluded: indent handled by shfmt)
 max-line-length = 120
 ignores = ["E003"]
+
+[tool.uv]
+exclude-newer = "1 day"
+exclude-newer-package = {btx-lib-mail = false, lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, pydantic = "2026-10-11T18:37:56Z", pydantic-core = "2026-10-11T18:35:45Z", rtoml = "2026-10-12T00:17:16Z", virtualenv = "2026-10-12T01:27:32Z"}
