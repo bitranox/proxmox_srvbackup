@@ -59,12 +59,13 @@ def _servers_from_config(config: Mapping[str, Any]) -> list[ServerConfig]:
     """Parse server configurations from the backup config section."""
     servers_dict = config.get("backup", {}).get("servers", {})
     servers: list[ServerConfig] = []
+    # str(): lib_layered_config hands an all-digit .env value over as an int, and ssh/zfs need text.
     for name, srv_cfg in servers_dict.items():
         servers.append(
             ServerConfig(
                 name=name,
-                hostname=srv_cfg.get("hostname", ""),
-                zfs_pool=srv_cfg.get("zfs_pool", "rpool"),
+                hostname=str(srv_cfg.get("hostname", "")),
+                zfs_pool=str(srv_cfg.get("zfs_pool", "rpool")),
                 is_local=_as_bool(srv_cfg.get("is_local", False), default=False),
                 backup_configfiles=_as_bool(srv_cfg.get("backup_configfiles", True), default=True),
                 backup_snapshot=_as_bool(srv_cfg.get("backup_snapshot", True), default=True),

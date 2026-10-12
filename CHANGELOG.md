@@ -6,6 +6,15 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ## [Unreleased]
 
+### Fixed
+- **An all-digit value in a text setting no longer stops startup or breaks a backup.**
+  lib_layered_config reads an unquoted `.env` or environment value that spells a number
+  losslessly as an int, so `LIB_LOG_RICH__SERVICE=2770` was refused by the logging settings model
+  with `Input should be a valid string`, and an all-digit server `hostname` or `zfs_pool` reached
+  the ssh and zfs calls as an int. Both now read as the text the operator wrote. The email
+  settings already did this for the user name and password; a test pins it end to end through a
+  real `.env`.
+
 ### Changed
 - **Synced with bitranox_template_py_cli 2.4.0** (a three-way merge from the template of
   2026-07-24, the version this app last matched before the 2.0 fixes were ported by hand). The
