@@ -13,8 +13,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from click.testing import CliRunner, Result
-    from conftest import EmailCliContext
     from lib_layered_config import Config
+
+    from conftest import EmailCliContext
 
 
 @pytest.mark.os_agnostic

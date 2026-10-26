@@ -92,12 +92,12 @@ def test_an_all_digit_password_is_read_as_its_digits() -> None:
 
 @pytest.mark.os_agnostic
 def test_an_all_digit_password_from_the_environment_loads(
-    monkeypatch: pytest.MonkeyPatch, user_layer_in_tmp_path: Path, clear_config_cache: None
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, clear_config_cache: None
 ) -> None:
     """Through the real loader: the environment layer turns the digits into an int."""
     prefix = __init__conf__.LAYEREDCONF_SLUG.upper().replace("-", "_")
     monkeypatch.setenv(f"{prefix}___EMAIL__SMTP_PASSWORD", DIGITS)
-    config = build_production().get_config(dotenv_path=str(user_layer_in_tmp_path / "absent.env"))
+    config = build_production().get_config(dotenv_path=str(tmp_path / "absent.env"))
 
     assert config.get("email", {}).get("smtp_password") == int(DIGITS)
     assert load_email_config_from_dict(config.as_dict()).smtp_password == SecretStr(DIGITS)

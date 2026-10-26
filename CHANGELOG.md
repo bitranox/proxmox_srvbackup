@@ -7,6 +7,24 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 ## [Unreleased]
 
 ### Fixed
+
+- `logdemo` works with lib_log_rich 7.0, which takes a `ConsoleTheme` member rather than a string
+  (it failed with `AttributeError: 'str' object has no attribute 'value'`). `--theme` offers
+  lib_log_rich's own theme list, so an unknown name is a usage error (exit 2) instead of the
+  library's `ValueError` reaching `main()`, whose exit code was the OS errno (22 on POSIX, 87 on
+  Windows).
+- The test suite no longer reads the developer's own user configuration layer. `user_layer_in_tmp_path`
+  is now autouse and points the user layer (`XDG_CONFIG_HOME`, `LIB_LAYERED_CONFIG_MAC_HOME_ROOT`,
+  `_APPDATA`, `_LOCALAPPDATA`) at an empty directory under `tmp_path`; `HOME` is no longer redirected,
+  because git and uv read it.
+- The doctests under `src/` no longer run against the machine's configuration layers: a fixture in
+  `tests/conftest.py` never reaches them. The two layer redirects now live in a rootdir `conftest.py`,
+  their variable lists in `tests/layer_roots.py`; pyproject sets `testpaths` to include `src` and
+  `tests` (which keeps the root `conftest.py` out of doctest collection), adds `tests` to `pythonpath`
+  and pyright's `extraPaths`, and gives pyright an execution environment rooted at `tests/`. A test
+  checks that every doctest collected from `src/` gets both redirects.
+
+### Fixed
 - The test suite no longer reads the app and host configuration layers of the machine it runs on.
   An autouse fixture points lib_layered_config's three app-root variables (`LIB_LAYERED_CONFIG_ETC`,
   `_MAC_APP_ROOT`, `_PROGRAMDATA`) at an empty directory under `tmp_path`, so a system-wide deploy
