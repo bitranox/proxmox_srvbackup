@@ -8,6 +8,9 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ### Fixed
 
+- `logdemo` refuses a `LOG_*` variable lib_log_rich refuses (`LOG_CONSOLE_LEVEL=bogus`) with exit 78
+  and lib_log_rich's own line, as `config` does. The demo reads the variables itself, so its
+  `ValueError` reached `main()` and exited with the OS errno (22 on POSIX, 87 on Windows).
 - `logdemo` works with lib_log_rich 7.0, which takes a `ConsoleTheme` member rather than a string
   (it failed with `AttributeError: 'str' object has no attribute 'value'`). `--theme` offers
   lib_log_rich's own theme list, so an unknown name is a usage error (exit 2) instead of the
