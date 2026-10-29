@@ -39,12 +39,12 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   a host substring, which also matched `xsmtp.test.com:5870`. The substring form was what CodeQL
   flagged as `py/incomplete-url-substring-sanitization`.
 
-## [1.10.3] 2026-10-24 15:32:22
+## [1.10.3] - 2026-10-24
 
 ### Changed
 - Raise the btx_lib_mail floor to 4.6.0.
 
-## [1.10.2] 2026-10-15 12:35:55
+## [1.10.2] - 2026-10-15
 
 ### Added
 - Python 3.15 is a supported version: declared in the classifiers, so CI and `make test-all` run it.
@@ -56,7 +56,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - The install section explains why installing with uv protects against supply-chain attacks and why
   a plain `pip install` from PyPI does not.
 
-## [1.10.1] 2026-10-12 19:08:14
+## [1.10.1] - 2026-10-12
 
 ### Fixed
 - **An all-digit value in a text setting no longer stops startup or breaks a backup.**
@@ -91,7 +91,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Console output, `backup` and `setup-keys` included, goes through one adapter that replaces a
   character the console codepage cannot show instead of crashing on it (a cp1252 Windows console).
 
-## [1.10.0] 2026-10-08 11:10:27
+## [1.10.0] - 2026-10-08
 
 ### Fixed
 - **`email.smtp_hosts` and `email.recipients` set to nothing mean not configured.** A bare YAML
@@ -298,7 +298,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   Migration: quote configured modes (`user_file = "640"`), and use the `0o` prefix in environment
   variables and `--set`; `--dir-mode 770` and `--file-mode 660` are refused.
 
-## [1.9.5] 2026-07-24
+## [1.9.5] - 2026-07-24
 
 ### Fixed
 - CI lint gate is green again under the latest `ruff`. A newer `ruff` began enforcing `PLR0917` (too many positional arguments) on the CLI command callbacks and helpers, turning the scheduled CI red. The callbacks now take keyword-only parameters after `ctx` (Click already invokes them by keyword), and `_execute_deploy` is keyword-only after its first argument, so the rule passes without loosening it.
@@ -309,7 +309,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - `PLC0415` is now ignored only for `tests/*.py`, where deferred imports inside test bodies are a deliberate idiom for exercising import and cache behaviour.
 - Doctests that construct domain models or enums now import those names inside the example, keeping them runnable after the type-only imports moved under `TYPE_CHECKING`.
 
-## [1.9.4] 2026-07-20
+## [1.9.4] - 2026-07-20
 
 ### Fixed
 - `config-deploy` now prints an ASCII marker for each written file. A non-ASCII glyph raised `UnicodeEncodeError` on a legacy Windows console codepage (cp1252) after the files were already written, so the command exited 1 and misreported a deploy that had actually succeeded.
@@ -321,7 +321,7 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 - Email tests drive an SMTP double that implements the real `smtplib` contract and records the delivered envelope, replacing a bare `MagicMock` that accepted any call and asserted nothing about delivery.
 - Cleared `[tool.pip-audit].ignore-vulns`. The audit runs against the resolved dependency tree, which no longer contains any of the listed packages at an affected version, so every entry was inert; the table now documents when an entry is warranted.
 
-## [1.9.3] 2026-06-14
+## [1.9.3] - 2026-06-14
 
 ### Changed
 - Added a `typed_click.py` facade wrapping rich-click's `option` / `version_option` decorators behind explicit, fully-known signatures, keeping the CLI strict-clean under pyright 1.1.410 (`reportUnknownMemberType`) without disabling the rule (ignore isolated to the facade).
