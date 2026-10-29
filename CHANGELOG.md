@@ -34,6 +34,10 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   (for example a `/etc/xdg/<slug>/config.d/99-*.toml`) can no longer fail tests locally while CI stays
   green. The subprocess tests in `test_logging_dotenv_isolation.py` dropped every
   `LIB_LAYERED_CONFIG*` variable and so read the real system layers; they now keep the redirect.
+- Three `config` display tests in `tests/test_cli_config.py` compare the shown SMTP hosts exactly
+  (the parsed JSON value, or the whole `smtp_hosts = [...]` line) instead of searching the output for
+  a host substring, which also matched `xsmtp.test.com:5870`. The substring form was what CodeQL
+  flagged as `py/incomplete-url-substring-sanitization`.
 
 ## [1.10.3] 2026-10-24 15:32:22
 
