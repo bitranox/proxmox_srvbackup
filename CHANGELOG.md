@@ -8,6 +8,10 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
 
 ### Fixed
 
+- A failure while shutting down logging no longer replaces the command's result: `main()` used to
+  end in a `RuntimeError` traceback ("Queue worker failed to stop within the allotted timeout") when a
+  log sink such as an unreachable Graylog stalled lib_log_rich's queue, losing the exit code of a
+  finished command. It now prints one warning on stderr and keeps the exit code.
 - `display_config` takes its `output_format` as the plain value too (`"json"`), as an untyped caller passes it, instead of failing with `AttributeError: 'str' object has no attribute 'value'`.
 - `notebooks/Quickstart.ipynb` installs the checkout it runs in, so CI's "Execute notebooks" job
   tests the commit under test. It used to install `git+https://github.com/...` every time, which is
@@ -44,6 +48,11 @@ the [Keep a Changelog](https://keepachangelog.com/) format.
   (the parsed JSON value, or the whole `smtp_hosts = [...]` line) instead of searching the output for
   a host substring, which also matched `xsmtp.test.com:5870`. The substring form was what CodeQL
   flagged as `py/incomplete-url-substring-sanitization`.
+
+### Changed
+
+- Requires `lib_log_rich>=8.2.0`, which backs off from an unreachable Graylog instead of stalling
+  the log queue.
 
 ## [1.10.3] - 2026-10-24
 
