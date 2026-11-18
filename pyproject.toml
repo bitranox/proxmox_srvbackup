@@ -12,7 +12,7 @@ dependencies = [
     # 6.4.2: validate_config, the check config --profile runs, refuses exactly what init() refuses.
     "lib_log_rich>=8.2.0",
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.7.0",
+    "lib_layered_config>=8.1.0",
     "btx_lib_mail>=4.6.4",
     "pydantic>=2.14.3",
     "orjson>=3.13.0",

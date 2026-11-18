@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from lib_layered_config import deploy_config
-from lib_layered_config.examples.deploy import DeployAction
+from lib_layered_config import DeployAction, deploy_config
 
 from proxmox_srvbackup import __init__conf__
 from proxmox_srvbackup.adapters.config.loader import get_default_config_path, validate_profile
